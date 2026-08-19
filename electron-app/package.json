@@ -7,6 +7,7 @@
     "@theia/core": "1.74.1",
     "@theia/editor": "1.74.1",
     "@theia/electron": "1.74.1",
+    "@theia/file-search": "1.74.1",
     "@theia/filesystem": "1.74.1",
     "@theia/markers": "1.74.1",
     "@theia/messages": "1.74.1",
@@ -14,6 +15,7 @@
     "@theia/navigator": "1.74.1",
     "@theia/preferences": "1.74.1",
     "@theia/process": "1.74.1",
+    "@theia/search-in-workspace": "1.74.1",
     "@theia/terminal": "1.74.1",
     "@theia/workspace": "1.74.1",
     "SuperColliderIDE": "0.0.0"
@@ -29,6 +31,11 @@
     "watch": "npm run rebuild && theia build --watch --mode development"
   },
   "theia": {
-    "target": "electron"
+    "target": "electron",
+    "frontend": {
+      "config": {
+        "applicationName": "SuperCollider IDE"
+      }
+    }
   }
 }
