@@ -3,6 +3,7 @@ import { Command, CommandContribution, CommandRegistry, MessageService } from '@
 import { ScService } from '../common/protocol';
 import { KeybindingContribution, KeybindingRegistry } from '@theia/core/lib/browser';
 import { EditorManager, TextEditor } from '@theia/editor/lib/browser';
+import { evalRangeAt } from './eval-region';
 
 
 export const SclangStartCommand : Command = {
@@ -70,11 +71,14 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
     protected codeToEvaluate(): string | undefined {
         const editor = this.currentEditor();
         if(!editor) { return undefined; }
-        const { start, end } = editor.selection;
-        const hasSelection = start.line !== end.line || start.character !== end.character;
-        return hasSelection
-            ? editor.document.getText(editor.selection)
-            // apply offset b/c get line content is start counting at 1, not 0!
-            : editor.document.getLineContent(editor.cursor.line + 1);
+        const document = editor.document;
+        const selected = document.getText(editor.selection);
+        if(selected) {
+            this.scService.evaluate(selected);
+        } else {
+            const text = document.getText();
+            const range = evalRangeAt(text, document.offsetAt(editor.cursor));
+            this.scService.evaluate(text.slice(range.start, range.end));
+        }
     }
 }

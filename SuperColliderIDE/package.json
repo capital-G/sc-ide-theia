@@ -11,13 +11,17 @@
   "dependencies": {
     "@theia/core": "1.74.1",
     "@theia/editor": "1.74.1",
-    "@theia/monaco": "1.74.1",
-    "@theia/workspace": "1.74.1",
-    "@theia/output": "1.74.1",
     "@theia/filesystem": "1.74.1",
-    "@theia/preferences": "1.74.1"
+    "@theia/monaco": "1.74.1",
+    "@theia/output": "1.74.1",
+    "@theia/preferences": "1.74.1",
+    "@theia/workspace": "1.74.1"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "chai": "^6.2.2",
+    "mocha": "^11.8.0",
     "rimraf": "^5.0.0",
     "typescript": "~5.4.5"
   },
@@ -25,7 +29,8 @@
     "prepare": "npm run clean && npm run build",
     "clean": "rimraf lib",
     "build": "tsc",
-    "watch": "tsc -w"
+    "watch": "tsc -w",
+    "test": "mocha \"./lib/**/*.spec.js\""
   },
   "theiaExtensions": [
     {
