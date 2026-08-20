@@ -2,8 +2,9 @@ import { injectable, inject } from '@theia/core/shared/inversify';
 import { Command, CommandContribution, CommandRegistry, MessageService } from '@theia/core/lib/common';
 import { ScService } from '../common/protocol';
 import { KeybindingContribution, KeybindingRegistry } from '@theia/core/lib/browser';
-import { EditorManager, TextEditor } from '@theia/editor/lib/browser';
+import { EditorManager, Range, TextEditor } from '@theia/editor/lib/browser';
 import { evalRangeAt } from './eval-region';
+import { FlashDecoration } from './sc-flash-decoration';
 
 
 export const SclangStartCommand : Command = {
@@ -35,6 +36,7 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
     @inject(ScService) protected readonly scService!: ScService;
     @inject(EditorManager) protected readonly editorManager!: EditorManager;
     @inject(MessageService) protected readonly messageService!: MessageService;
+    @inject(FlashDecoration) protected readonly flash!: FlashDecoration;
 
     registerCommands(registry: CommandRegistry): void {
         registry.registerCommand(SclangStartCommand, {
@@ -54,10 +56,11 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
         registry.registerCommand(SclangEvalCommand, {
             isEnabled: () => !!this.currentEditor(),
             execute: () => {
-                const code = this.codeToEvaluate();
-                if (code?.trim()) {
-                    this.scService.evaluate(code);
+                const codeSelection = this.getCodeSelection();
+                if (codeSelection?.code?.trim()) {
+                    this.scService.evaluate(codeSelection.code);
                 }
+                this.flash.flash(this.currentEditor()!, codeSelection?.range!, 300.0);
             }
         });
 
@@ -78,17 +81,23 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
         return this.editorManager.currentEditor?.editor;
     }
 
-    protected codeToEvaluate(): string | undefined {
+    protected getCodeSelection(): {code: string, range: Range } | undefined {
         const editor = this.currentEditor();
         if(!editor) { return undefined; }
         const document = editor.document;
         const selected = document.getText(editor.selection);
         if(selected) {
-            this.scService.evaluate(selected);
+            return {
+                code: selected,
+                range: editor.selection,
+            };
         } else {
             const text = document.getText();
             const range = evalRangeAt(text, document.offsetAt(editor.cursor));
-            this.scService.evaluate(text.slice(range.start, range.end));
+            return {
+                code: text,
+                range: Range.create(document.positionAt(range.start), document.positionAt(range.end)),
+            }
         }
     }
 }
