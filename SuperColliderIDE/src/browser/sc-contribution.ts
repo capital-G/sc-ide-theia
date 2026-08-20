@@ -24,6 +24,12 @@ export const SclangEvalCommand : Command = {
     category: "sclang",
 }
 
+export const SclangRecompileCommand : Command = {
+    id: "sclang.recompile",
+    label: "Recompile class library",
+    category: "sclang",
+}
+
 @injectable()
 export class ScCommandContribution implements CommandContribution, KeybindingContribution {
     @inject(ScService) protected readonly scService!: ScService;
@@ -53,6 +59,10 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
                     this.scService.evaluate(code);
                 }
             }
+        });
+
+        registry.registerCommand(SclangRecompileCommand, {
+            execute: () => this.scService.recompile()
         });
     }
 

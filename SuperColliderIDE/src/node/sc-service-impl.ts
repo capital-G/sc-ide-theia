@@ -1,7 +1,7 @@
 import { injectable } from "@theia/core/shared/inversify";
 import { BackendApplicationContribution } from "@theia/core/lib/node";
 import { InterpreterState, ScClient, ScService } from "../common/protocol";
-import { EVALUATE, SclangProcess } from "./sclang-process";
+import { EVALUATE, RECOMPILE, SclangProcess } from "./sclang-process";
 
 @injectable()
 export class ScServiceImpl implements ScService, BackendApplicationContribution {
@@ -53,7 +53,7 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
     }
 
     async recompile(): Promise<void> {
-        
+        this.process?.write("", RECOMPILE);
     }
 
     async send(selector: string, data: unknown): Promise<void> {
