@@ -78,6 +78,8 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
         this.client?.onInterpreterStateChanged(state);
     }
 
+    
+
 
     async stopInterpreter(): Promise<void> {
         
@@ -92,6 +94,11 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
 
     async send(selector: string, data: unknown): Promise<void> {
         
+    }
+
+    async query(selector: string, arg: string): Promise<string[]> {
+        // mockup for now...
+        return ["SinOsc", "SinOscFB", "Saw", "Splay"].filter(n => n.startsWith(arg))
     }
 
     async interpreterState(): Promise<InterpreterState> {

@@ -29,6 +29,9 @@ export interface ScService extends RpcServer<ScClient> {
     send(selector: string, data: unknown): Promise<void>;
     interpreterState(): Promise<InterpreterState>;
     resolveSclangPath(): Promise<string | undefined>;
+
+    // autocomplete stuff - this should be at some day handled by a LSP ;)
+    query(selector: string, arg: string): Promise<string[]>;
 }
 
 export interface ScClient {

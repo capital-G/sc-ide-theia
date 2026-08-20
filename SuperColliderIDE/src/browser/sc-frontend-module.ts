@@ -13,6 +13,7 @@ import { LanguageGrammarDefinitionContribution } from '@theia/monaco/lib/browser
 import { ScLanguageContribution } from './sc-language-contribution';
 import { ScPreferenceContribution } from './sc-preferences';
 import { ScDefaultLanguage } from './sc-default-language';
+import { ScAutocomplete } from './sc-autocomplete';
 
 export default new ContainerModule(bind => {
     bind(ScClientImpl).toSelf().inSingletonScope();
@@ -25,6 +26,8 @@ export default new ContainerModule(bind => {
     bind(PreferenceContribution).to(ScPreferenceContribution).inSingletonScope();
     bind(ScDefaultLanguage).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(ScDefaultLanguage);
+    bind(ScAutocomplete).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(ScAutocomplete);
 
     bind(ScService).toDynamicValue(ctx => {
         const provider = ctx.container.get<ServiceConnectionProvider>(RemoteConnectionProvider);
