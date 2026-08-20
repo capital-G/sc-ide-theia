@@ -5,15 +5,16 @@ import { ScCommandContribution } from './sc-contribution';
 import { CommandContribution } from '@theia/core/lib/common';
 import { ContainerModule } from '@theia/core/shared/inversify';
 import { SC_SERVICE_PATH, ScClient, ScService } from '../common/protocol';
-import { FrontendApplicationContribution, RemoteConnectionProvider, ServiceConnectionProvider } from '@theia/core/lib/browser';
+import { FrontendApplicationContribution, KeybindingContribution, RemoteConnectionProvider, ServiceConnectionProvider } from '@theia/core/lib/browser';
 import { ScClientImpl } from './sc-client-impl';
 import { ScPostWindow } from './sc-post-window';
 
 export default new ContainerModule(bind => {
     bind(ScClientImpl).toSelf().inSingletonScope();
     bind(ScClient).toService(ScClientImpl);
-
+    bind(ScCommandContribution).toSelf().inSingletonScope();
     bind(CommandContribution).to(ScCommandContribution);
+    bind(KeybindingContribution).toService(ScCommandContribution);
 
     bind(ScService).toDynamicValue(ctx => {
         const provider = ctx.container.get<ServiceConnectionProvider>(RemoteConnectionProvider);
