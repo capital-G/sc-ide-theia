@@ -1,8 +1,8 @@
 import { ChildProcess, spawn } from "child_process";
 import { StringDecoder } from "string_decoder";
-// import { StringDecoder } from "string_decoder";
 
 export const EVALUATE = 0x0c;
+export const SILENT = 0x1b;
 export const RECOMPILE = 0x18;
 
 export interface SclangOptions {
@@ -18,6 +18,7 @@ export interface SclangOptions {
  */
 export class SclangProcess {
     protected process: ChildProcess | undefined;
+    protected exited = false;
 
     constructor(
         protected readonly options: SclangOptions,
@@ -39,8 +40,14 @@ export class SclangProcess {
             }
         );
 
-        this.process.on('error', err => this.onPost(`[sclang] failed to start: ${err.message}\n`));
-        this.process.on('exit', code => {this.process = undefined; this.onExit(code);});
+        // When the spawn itself fails (e.g. a wrong sclangPath) node emits 'error' and
+        // 'close' but never 'exit' - so both paths have to end in onExit, otherwise the
+        // owner keeps a handle to a process that never existed and can never restart it.
+        this.process.on('error', err => {
+            this.onPost(`[sclang] failed to start: ${err.message}\n`);
+            this.handleExit(null);
+        });
+        this.process.on('exit', code => this.handleExit(code));
 
         // use a custom string decoder
         const out = new StringDecoder('utf8');
@@ -62,9 +69,17 @@ export class SclangProcess {
         stdin.write(Buffer.from([controlByte]));
     }
 
-    kill(): void {
-        this.process?.kill('SIGTERM');
+    /** Reports the exit exactly once, no matter which event got us here. */
+    protected handleExit(code: number | null): void {
+        if (this.exited) { return; }
+        this.exited = true;
         this.process = undefined;
+        this.onExit(code);
+    }
+
+    kill(): void {
+        // no clearing of the handle here - 'exit' does that, so the owner still gets notified
+        this.process?.kill('SIGTERM');
     }
     
     get pid(): number | undefined { return this.process?.pid; }

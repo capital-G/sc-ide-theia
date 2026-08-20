@@ -1,7 +1,7 @@
 import { injectable } from "@theia/core/shared/inversify";
 import { BackendApplicationContribution } from "@theia/core/lib/node";
 import { InterpreterState, ScClient, ScService } from "../common/protocol";
-import { EVALUATE, RECOMPILE, SclangProcess } from "./sclang-process";
+import { EVALUATE, RECOMPILE, SILENT, SclangProcess } from "./sclang-process";
 
 @injectable()
 export class ScServiceImpl implements ScService, BackendApplicationContribution {
@@ -12,6 +12,9 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
     protected process: SclangProcess | undefined;
     protected client: ScClient | undefined;
     protected state: InterpreterState = { kind: "stopped" };
+    
+    /** callback for compilation done */
+    protected onCompileDone(): void {}
 
     setClient(client: ScClient | undefined): void {
         this.client = client;
@@ -31,15 +34,43 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
                     sclangPath: "/Applications/SuperCollider-3.14.1.app/Contents/MacOS/sclang",
                     ideName: "theia"
                 },
-                chunk => this.client?.onPost(chunk),
-                code => this.setState({ kind: 'stopped', exitCode: code ?? undefined })
+                chunk => this.onChunk(chunk),
+                code => this.onProcessExit(code)
             );
             this.process.start();
-            this.setState({kind: 'running', pid: this.process.pid!, compiled: false, channelUp: false});
+            const pid = this.process.pid;
+            if (pid === undefined) {
+                // error path should handle this
+                return;
+            }
+            this.setState({ kind: 'starting', pid });
+    }
+
+    /**
+     * checks output if it contains state information of the interpreter
+     */
+    protected onChunk(chunk: string): void {
+        if (this.state.kind !== 'stopped') {
+            const pid = this.state.pid;
+            const channelUp = this.state.kind === 'running' ? this.state.channelUp : false;
+            if (chunk.includes("compiling class library")) {
+                this.setState({ kind: 'starting', pid });
+            }
+            if (chunk.includes("compile done\n")) {
+                this.setState({ kind: 'running', pid, compiled: true, channelUp });
+                this.onCompileDone();
+            }
+        }
+        this.client?.onPost(chunk);
+    }
+
+    protected onProcessExit(code: number | null): void {
+        this.process = undefined;
+        this.setState({ kind: 'stopped', exitCode: code ?? undefined });
     }
 
     async evaluate(code: string, silent?: boolean): Promise<void> {
-        this.process?.write(code, EVALUATE);
+        this.process?.write(code, silent ? SILENT : EVALUATE);
     }
 
     protected setState(state: InterpreterState): void {
@@ -53,6 +84,9 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
     }
 
     async recompile(): Promise<void> {
+        if(this.state.kind == 'running') {
+            this.setState({ ...this.state, compiled: false });
+        }
         this.process?.write("", RECOMPILE);
     }
 
@@ -76,5 +110,4 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
         this.process?.kill();
         this.process = undefined;
     }
-
 }

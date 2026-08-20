@@ -6,7 +6,7 @@ export const ScClient = Symbol("ScClient");
 
 export type InterpreterState = 
     | { kind: "stopped"; exitCode?: number }
-    | { kind: "starting" }
+    | { kind: "starting", pid: number }
     | { kind: "running", pid: number, compiled: boolean, channelUp: boolean};
 
 /**
