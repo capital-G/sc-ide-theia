@@ -1,4 +1,6 @@
 # SuperColliderIDE
+
+
 The example of how to build the Theia-based applications with the SuperColliderIDE.
 
 ## Getting started
@@ -78,3 +80,7 @@ Create a npm user and login to the npm registry, [more on npm publishing](https:
 Publish packages with lerna to update versions properly across local packages, [more on publishing with lerna](https://github.com/lerna/lerna#publish).
 
     npx lerna publish
+
+## Credits and Acknowledgements
+
+* Textmate grammar file from [vscode-supercollider](https://github.com/scztt/vscode-supercollider/blob/develop/syntaxes/supercollider.tmLanguage.json) by scztt [MIT]

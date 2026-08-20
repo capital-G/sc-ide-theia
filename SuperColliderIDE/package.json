@@ -13,6 +13,7 @@
     "@theia/editor": "1.74.1",
     "@theia/filesystem": "1.74.1",
     "@theia/monaco": "1.74.1",
+    "@theia/monaco-editor-core": "1.108.201",
     "@theia/output": "1.74.1",
     "@theia/preferences": "1.74.1",
     "@theia/workspace": "1.74.1"
