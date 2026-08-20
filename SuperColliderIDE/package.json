@@ -9,7 +9,13 @@
     "src"
   ],
   "dependencies": {
-    "@theia/core": "1.74.1"
+    "@theia/core": "1.74.1",
+    "@theia/editor": "1.74.1",
+    "@theia/monaco": "1.74.1",
+    "@theia/workspace": "1.74.1",
+    "@theia/output": "1.74.1",
+    "@theia/filesystem": "1.74.1",
+    "@theia/preferences": "1.74.1"
   },
   "devDependencies": {
     "rimraf": "^5.0.0",
