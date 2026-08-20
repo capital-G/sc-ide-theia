@@ -31,10 +31,7 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
                     sclangPath: "/Applications/SuperCollider-3.14.1.app/Contents/MacOS/sclang",
                     ideName: "theia"
                 },
-                chunk => {
-                    console.log('[sclang]', chunk);
-                    this.client?.onPost(chunk);
-                },
+                chunk => this.client?.onPost(chunk),
                 code => this.setState({ kind: 'stopped', exitCode: code ?? undefined })
             );
             this.process.start();
