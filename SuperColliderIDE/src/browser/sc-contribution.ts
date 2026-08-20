@@ -56,11 +56,12 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
         registry.registerCommand(SclangEvalCommand, {
             isEnabled: () => !!this.currentEditor(),
             execute: () => {
+                const editor = this.currentEditor();
+                if (!editor) { return; }
                 const codeSelection = this.getCodeSelection();
-                if (codeSelection?.code?.trim()) {
-                    this.scService.evaluate(codeSelection.code);
-                }
-                this.flash.flash(this.currentEditor()!, codeSelection?.range!, 300.0);
+                if (!codeSelection?.code.trim()) { return; }
+                this.scService.evaluate(codeSelection.code);
+                this.flash.flash(editor, codeSelection.range, 300.0);
             }
         });
 
@@ -95,7 +96,7 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
             const text = document.getText();
             const range = evalRangeAt(text, document.offsetAt(editor.cursor));
             return {
-                code: text,
+                code: text.slice(range.start, range.end),
                 range: Range.create(document.positionAt(range.start), document.positionAt(range.end)),
             }
         }
