@@ -29,7 +29,8 @@
   },
   "theiaExtensions": [
     {
-      "frontend": "lib/browser/SuperColliderIDE-frontend-module"
+      "frontend": "lib/browser/sc-frontend-module",
+      "backend": "lib/node/sc-backend-module"
     }
   ]
 }
