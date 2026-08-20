@@ -26,8 +26,8 @@ export function evalRangeAt(text: string, offset: number): EvalRange {
                     const column = groupStart - (text.lastIndexOf('\n', groupStart - 1) + 1);
                     if(column === 0) {
                         return {
-                            start: groupStart,
-                            end: i+1,
+                            start: groupStart+1,
+                            end: i,
                             kind: 'region',
                         };
                     }

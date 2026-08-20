@@ -18,7 +18,7 @@ function evalAt(marked: string): {text: string; kind: EvalRange["kind"] } {
 describe('evalRangeAt', () => {
     it("eval block", () => {
         expect(evalAt('(\n1+|1;\n)')).to.deep.equal({
-            text: '(\n1+1;\n)',
+            text: '\n1+1;\n',
             kind: 'region',
         })
     });
@@ -27,6 +27,20 @@ describe('evalRangeAt', () => {
         expect(evalAt("x=1;\ny=|2;\nz=3;\n")).to.deep.equal({
             text: 'y=2;',
             kind: 'line',
+        })
+    })
+
+    it("eval block when cursor at end", () => {
+        expect(evalAt("(\nx=1;\ny=1;\n)|")).to.deep.equal({
+            text: '\nx=1;\ny=1;\n',
+            kind: 'region',
+        })
+    })
+
+    it("eval skip first section when cursor at end", () => {
+        expect(evalAt("(\nx=1;\ny=1;\n)\n\n(\nx=2;\n)|")).to.deep.equal({
+            text: '\nx=2;\n',
+            kind: 'region',
         })
     })
 });
