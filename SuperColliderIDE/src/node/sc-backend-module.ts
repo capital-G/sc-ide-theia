@@ -1,7 +1,7 @@
 import { ContainerModule } from "@theia/core/shared/inversify";
 import { ConnectionHandler, RpcConnectionHandler } from "@theia/core";
 import { ScClient,ScService, SC_SERVICE_PATH } from "../common/protocol";
-import { ScServiceImpl } from "./sc-service";
+import { ScServiceImpl } from "./sc-service-impl";
 
 export default new ContainerModule(bind => {
     bind(ScServiceImpl).toSelf().inSingletonScope();

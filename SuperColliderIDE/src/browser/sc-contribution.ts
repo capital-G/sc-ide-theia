@@ -1,32 +1,40 @@
 import { injectable, inject } from '@theia/core/shared/inversify';
-import { Command, CommandContribution, CommandRegistry, MenuContribution, MenuModelRegistry, MessageService } from '@theia/core/lib/common';
-import { CommonMenus } from '@theia/core/lib/browser';
+import { Command, CommandContribution, CommandRegistry, MessageService } from '@theia/core/lib/common';
+import { ScService } from '../common/protocol';
 
-export const SuperColliderIDECommand: Command = {
-    id: 'SuperColliderIDE.command',
-    label: 'Say Hello'
-};
+
+export const SclangStartCommand : Command = {
+    id: 'sclang.start',
+    label: "Start sclang",
+    category: "SuperCollider",
+}
+
+export const SclangEvalTestCommand : Command = {
+    id: "sclang.evalTest",
+    label: "Eval sclang test",
+    category: "SuperCollider",
+}
 
 @injectable()
-export class SuperColliderIDECommandContribution implements CommandContribution {
+export class ScCommandContribution implements CommandContribution {
+    @inject(ScService) protected readonly scService!: ScService;
     
     @inject(MessageService)
     protected readonly messageService!: MessageService;
 
     registerCommands(registry: CommandRegistry): void {
-        registry.registerCommand(SuperColliderIDECommand, {
-            execute: () => this.messageService.info('Hello World!')
+        registry.registerCommand(SclangStartCommand, {
+            execute: () => {
+                this.messageService.info('Starting sclang');
+                this.scService.startInterpreter();
+            }
         });
-    }
-}
-
-@injectable()
-export class SuperColliderIDEMenuContribution implements MenuContribution {
-
-    registerMenus(menus: MenuModelRegistry): void {
-        menus.registerMenuAction(CommonMenus.EDIT_FIND, {
-            commandId: SuperColliderIDECommand.id,
-            label: SuperColliderIDECommand.label
-        });
+        
+        registry.registerCommand(SclangEvalTestCommand, {
+            execute: () => {
+                this.messageService.info("Eval test");
+                this.scService.evaluate("2+2");
+            }
+        })
     }
 }
