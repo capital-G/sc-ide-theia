@@ -31,6 +31,12 @@ export const SclangRecompileCommand : Command = {
     category: "sclang",
 }
 
+export const ScStopServer : Command = {
+    id: "sc.stopServer",
+    label: "Stop server playback",
+    category: "server",
+}
+
 @injectable()
 export class ScCommandContribution implements CommandContribution, KeybindingContribution {
     @inject(ScService) protected readonly scService!: ScService;
@@ -68,6 +74,12 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
         registry.registerCommand(SclangRecompileCommand, {
             execute: () => this.scService.recompile()
         });
+
+        registry.registerCommand(ScStopServer, {
+            execute: () => {
+                this.scService.evaluate("CmdPeriod.run;", false);
+            }
+        })
     }
 
     registerKeybindings(keybindings: KeybindingRegistry): void {
@@ -75,6 +87,11 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
             command: SclangEvalCommand.id,
             keybinding: 'ctrlcmd+enter',
             when: 'editorFocus',
+        });
+
+        keybindings.registerKeybinding({
+            command: ScStopServer.id,
+            keybinding: "cmd+.",
         });
     }
 
