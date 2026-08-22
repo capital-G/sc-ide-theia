@@ -16,7 +16,8 @@
     "@theia/monaco-editor-core": "1.108.201",
     "@theia/output": "1.74.1",
     "@theia/preferences": "1.74.1",
-    "@theia/workspace": "1.74.1"
+    "@theia/workspace": "1.74.1",
+    "osc-js": "^2.4.1"
   },
   "devDependencies": {
     "@types/chai": "^4.3.20",

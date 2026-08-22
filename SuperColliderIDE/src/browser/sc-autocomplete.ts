@@ -1,6 +1,6 @@
 import { FrontendApplicationContribution } from "@theia/core/lib/browser";
 import { inject, injectable } from "@theia/core/shared/inversify";
-import { InterpreterState, ScService } from "../common/protocol";
+import { InterpreterState, SC_CLASS_REGEX, ScService } from "../common/protocol";
 import { ScClientImpl } from "./sc-client-impl";
 import * as monaco from '@theia/monaco-editor-core';
 import { SC_LANGUAGE_ID } from "./sc-language-contribution";
@@ -28,7 +28,7 @@ export class ScAutocomplete implements FrontendApplicationContribution {
         if (this.state.kind !== "running" || !this.state.compiled) { return undefined; };
         const word = model.getWordUntilPosition(position);
         // check only classes for now
-        if(!/^[A-Z][A-Za-z0-9_]*$/.test(word.word)) { return undefined; }
+        if(!SC_CLASS_REGEX.test(word.word)) { return undefined; }
 
         const names = await this.scService.query('complete', word.word);
         if (token.isCancellationRequested) { return undefined; };

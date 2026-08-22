@@ -9,6 +9,8 @@ export type InterpreterState =
     | { kind: "starting", pid: number }
     | { kind: "running", pid: number, compiled: boolean, channelUp: boolean};
 
+export const SC_CLASS_REGEX = /^[A-Z][A-Za-z0-9_]*$/;
+
 /**
  * One decoded frame from sclang.
  * Data is parsed JSON.

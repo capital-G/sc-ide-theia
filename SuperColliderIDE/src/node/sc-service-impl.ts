@@ -1,7 +1,12 @@
 import { injectable } from "@theia/core/shared/inversify";
 import { BackendApplicationContribution } from "@theia/core/lib/node";
-import { InterpreterState, ScClient, ScService } from "../common/protocol";
+import { InterpreterState, SC_CLASS_REGEX, ScClient, ScService } from "../common/protocol";
 import { EVALUATE, RECOMPILE, SILENT, SclangProcess } from "./sclang-process";
+import OSC from "osc-js";
+import { SclangUdp } from "./sclang-udp";
+
+import * as path from "path";
+import { readFile } from "fs/promises";
 
 @injectable()
 export class ScServiceImpl implements ScService, BackendApplicationContribution {
@@ -14,7 +19,25 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
     protected state: InterpreterState = { kind: "stopped" };
     
     /** callback for compilation done */
-    protected onCompileDone(): void {}
+    protected onCompileDone(): void {
+        if (this.udpPort === undefined) {return;}
+        this.process?.write(`~port = ${this.udpPort};${this.bootstrapCode}`, SILENT);
+    }
+
+    /** autocomplete stuff */
+    protected nextId = 0;
+    protected readonly pending = new Map<number, { resolve(v: string[]): void; timer: NodeJS.Timeout }>();
+    protected udpSocket: SclangUdp | undefined;
+    protected udpPort: number | undefined;
+    protected bootstrapCode: string = "";
+
+    async initialize(): Promise<void> {
+        this.udpSocket = new SclangUdp(msg => this.onOsc(msg));
+        this.udpPort = await this.udpSocket.start();
+
+        const file = process.env.SC_IDE_BOOTSTRAP ?? path.join(__dirname, 'sc', 'bootstrap.scd');
+        this.bootstrapCode = await readFile(file, 'utf-8');
+    }
 
     setClient(client: ScClient | undefined): void {
         this.client = client;
@@ -66,6 +89,11 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
 
     protected onProcessExit(code: number | null): void {
         this.process = undefined;
+        for (const {resolve, timer} of this.pending.values()) {
+            clearTimeout(timer);
+            resolve([]);
+        }
+        this.pending.clear();
         this.setState({ kind: 'stopped', exitCode: code ?? undefined });
     }
 
@@ -79,8 +107,6 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
     }
 
     
-
-
     async stopInterpreter(): Promise<void> {
         
     }
@@ -98,7 +124,33 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
 
     async query(selector: string, arg: string): Promise<string[]> {
         // mockup for now...
-        return ["SinOsc", "SinOscFB", "Saw", "Splay"].filter(n => n.startsWith(arg))
+        if (this.state.kind !== "running" || !this.state.compiled) { return []; }
+        // double check - but we don't trust ourselves ;)
+        if(!SC_CLASS_REGEX.test(arg)) { return []; }
+
+        const id = ++this.nextId;
+        return new Promise<string[]>(resolve => {
+            const timer = setTimeout(() => {this.pending.delete(id); resolve([]);}, 500);
+            this.pending.set(id, {resolve, timer });
+            this.process?.write(`~hello.(${id}, \\${selector}, "${arg}")`, SILENT);
+        })
+    }
+
+    protected onOsc(msg: OSC.Message): void {
+        // once we got a osc message, we are connected for sure :)
+        if(this.state.kind === "running" && !this.state.channelUp) {
+            this.setState({ ...this.state, channelUp: true });
+        }
+
+        const [id, ...args] = msg.args;
+        if (typeof(id) !== 'number' ) { return; }
+        const p = this.pending.get(id);
+        // we already timed out in that case
+        if(!p) { return; }
+        this.pending.delete(id);
+        clearTimeout(p.timer);
+        p.resolve(args.filter((a): a is string => typeof a === 'string'))
+
     }
 
     async interpreterState(): Promise<InterpreterState> {
