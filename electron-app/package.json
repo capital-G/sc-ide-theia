@@ -35,7 +35,8 @@
   },
   "theiaPluginsDir": "plugins",
   "theiaPlugins": {
-    "vscode.git": "https://open-vsx.org/api/vscode/git/1.95.3/file/vscode.git-1.95.3.vsix"
+    "vscode.git": "https://open-vsx.org/api/vscode/git/1.95.3/file/vscode.git-1.95.3.vsix",
+    "vscodevim.vim": "https://open-vsx.org/api/vscodevim/vim/1.32.4/file/vscodevim.vim-1.32.4.vsix"
   },
   "theia": {
     "target": "electron",
