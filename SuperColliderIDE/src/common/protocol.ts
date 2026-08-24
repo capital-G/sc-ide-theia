@@ -9,7 +9,29 @@ export type InterpreterState =
     | { kind: "starting", pid: number }
     | { kind: "running", pid: number, compiled: boolean, channelUp: boolean};
 
+// capture by word
 export const SC_CLASS_REGEX = /^[A-Z][A-Za-z0-9_]*$/;
+export const SC_CLASS_TAIL_REGEX = /[A-Z][A-Za-z0-9_]*$/; // use for line prefix scanning
+export const SC_STATIC_METHOD_REGEX = /([A-Z][A-Za-z0-9_]*)\.([a-z][A-Za-z0-9_]*)$/;
+export const SC_METHOD_REGEX = /(~?[a-z][A-Za-z0-9_]*)\.([a-z][A-Za-z0-9_]*)$/;
+export const SC_ENV_REGEX = /~[A-Za-z][A-Za-z0-9_]*$/;
+
+// matched by beginning and end
+export const SC_METHOD_NAME = /^[a-z][A-Za-z0-9_]*$/;
+export const SC_INTEGER = /^\d+$/;
+export const SC_FLOAT = /^\d+\.\d+$/;
+export const SC_ARRAY = /^\[[\s\S]*\]$/;
+export const SC_FUNCTION = /^\{[\s\S]*\}$/;
+export const SC_SYMBOL = /^\\[A-Za-z0-9_]+$|^'[\s\S]*'$/;
+export const SC_STRING = /^"[\s\S]*"$/;
+
+export interface ScArg { name: string; default?: string }
+/** reference of the actual implementation of a method, i.e. its class handle */
+export interface ScMethodRef { name: string; ownerClass: string; isClassMethod: boolean }
+/** Lazily obtained from the language */
+export interface ScMethodImpl extends ScMethodRef { args: ScArg[]; file?: string; charPos?: number }
+
+
 
 /**
  * One decoded frame from sclang.
