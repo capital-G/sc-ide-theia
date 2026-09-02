@@ -29,9 +29,18 @@ export interface ScArg { name: string; default?: string }
 /** reference of the actual implementation of a method, i.e. its class handle */
 export interface ScMethodRef { name: string; ownerClass: string; isClassMethod: boolean }
 /** Lazily obtained from the language */
-export interface ScMethodImpl extends ScMethodRef { args: ScArg[]; file?: string; charPos?: number }
+export type ScMethodSide = 'class' | 'instance';
+export const SC_QUERY_LIMIT = 50;
 
 
+export enum QuerySelector {
+    // ~theiaIde.("class", class);
+    CLASS_LOOKUP = "class",
+    // ~theiaIde.("method", prefix, receiverClass ?? "", side ?? "");
+    METHOD_LOOKUP = "method",
+    // ~theiaIde.("args", this.query, ref.name,ref.ownerClass, ref.isClassMethod ? "class" : "instance")
+    ARGS_LOOKUP = "args",
+}
 
 /**
  * One decoded frame from sclang.
@@ -54,8 +63,9 @@ export interface ScService extends RpcServer<ScClient> {
     interpreterState(): Promise<InterpreterState>;
     resolveSclangPath(): Promise<string | undefined>;
 
-    // autocomplete stuff - this should be at some day handled by a LSP ;)
-    query(selector: string, arg: string): Promise<string[]>;
+    queryClass(text: string): Promise<string[]>;
+    queryMethod(text: string, receiver?: string, side?: ScMethodSide): Promise<ScMethodRef[]>;
+    queryArgs(ref: ScMethodRef): Promise<ScArg[] | undefined>;
 }
 
 export interface ScClient {

@@ -1,12 +1,14 @@
 import { injectable } from "@theia/core/shared/inversify";
 import { BackendApplicationContribution } from "@theia/core/lib/node";
-import { InterpreterState, SC_CLASS_REGEX, ScClient, ScService } from "../common/protocol";
+import { InterpreterState, QuerySelector, ScArg, ScClient, ScMethodRef, ScMethodSide, ScService } from "../common/protocol";
 import { EVALUATE, RECOMPILE, SILENT, SclangProcess } from "./sclang-process";
 import OSC from "osc-js";
 import { SclangUdp } from "./sclang-udp";
 
 import * as path from "path";
 import { readFile } from "fs/promises";
+
+const SC_RESOLVE_TIMEOUT_MS = 500;
 
 @injectable()
 export class ScServiceImpl implements ScService, BackendApplicationContribution {
@@ -26,7 +28,7 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
 
     /** autocomplete stuff */
     protected nextId = 0;
-    protected readonly pending = new Map<number, { resolve(v: string[]): void; timer: NodeJS.Timeout }>();
+    protected readonly pending = new Map<number, { resolve(v: string[] | undefined): void; timer: NodeJS.Timeout }>();
     protected udpSocket: SclangUdp | undefined;
     protected udpPort: number | undefined;
     protected bootstrapCode: string = "";
@@ -122,18 +124,53 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
         
     }
 
-    async query(selector: string, arg: string): Promise<string[]> {
-        // mockup for now...
-        if (this.state.kind !== "running" || !this.state.compiled) { return []; }
-        // double check - but we don't trust ourselves ;)
-        if(!SC_CLASS_REGEX.test(arg)) { return []; }
+    // check if args are rather primitives string w/o any escape
+    private static readonly SAFE_ARG = /^[A-Za-z0-9_]*$/;
+
+    private async query(selector: QuerySelector, ...args: string[]): Promise<string[] | undefined> {
+        if (this.state.kind !== "running" || !this.state.compiled) { return undefined; }
+        if(!args.every(a => ScServiceImpl.SAFE_ARG.test(a))) { return undefined; }
 
         const id = ++this.nextId;
-        return new Promise<string[]>(resolve => {
-            const timer = setTimeout(() => {this.pending.delete(id); resolve([]);}, 500);
-            this.pending.set(id, {resolve, timer });
-            this.process?.write(`~hello.(${id}, \\${selector}, "${arg}")`, SILENT);
+        return new Promise<string[] | undefined>(resolve => {
+            const timer = setTimeout(() => {this.pending.delete(id); resolve(undefined);}, SC_RESOLVE_TIMEOUT_MS);
+            this.pending.set(id, { resolve, timer });
+            this.process?.write(`~theiaIDE.(${id}, \\${selector}, "${args.join('", "')}")`, SILENT);
         })
+    }
+
+    async queryClass(text: string): Promise<string[]> {
+        return await this.query(QuerySelector.CLASS_LOOKUP, text) ?? [];
+    }
+
+    async queryMethod(prefix: string, receiverClass?: string, side?: ScMethodSide): Promise<ScMethodRef[]> {
+        const rows = await this.query(QuerySelector.METHOD_LOOKUP, prefix, receiverClass ?? "", side ?? "");
+        // need to split the rows now - which are tab separated
+        return rows?.flatMap(row => {
+            const [name, ownerClass, kind, argCount] = row.split("\t");
+            if (!name || !ownerClass || !kind ) {return []; }
+            return [{
+                name,
+                ownerClass,
+                isClassMethod: kind == "c",
+                argCount: Number(argCount) || 0,
+            }]
+        }) ?? []
+    }
+
+    async queryArgs(ref: ScMethodRef): Promise<ScArg[] | undefined> {
+        const rows = await this.query(
+            QuerySelector.ARGS_LOOKUP,
+            ref.name,
+            ref.ownerClass,
+            ref.isClassMethod ? "class" : "instance"
+        );
+        if(!rows) { return undefined; }
+    
+        return rows.map(row => {
+            const eq = row.indexOf("=");
+            return eq < 0 ? {name: row } : { name: row.slice(0, eq), default: row.slice(eq+1)};
+        });
     }
 
     protected onOsc(msg: OSC.Message): void {

@@ -1,10 +1,11 @@
 import { injectable, inject } from '@theia/core/shared/inversify';
 import { Command, CommandContribution, CommandRegistry, MessageService } from '@theia/core/lib/common';
-import { ScService } from '../common/protocol';
+import { ScMethodRef, ScService } from '../common/protocol';
 import { KeybindingContribution, KeybindingRegistry } from '@theia/core/lib/browser';
 import { EditorManager, Range, TextEditor } from '@theia/editor/lib/browser';
 import { evalRangeAt } from './eval-region';
 import { FlashDecoration } from './sc-flash-decoration';
+import { ScAutocomplete } from './sc-autocomplete';
 
 
 export const SclangStartCommand : Command = {
@@ -37,12 +38,26 @@ export const ScStopServer : Command = {
     category: "server",
 }
 
+export const ScQueryTestCommand: Command = {
+    id: "sc.queryTest",
+    label: "Query test: SinOsc class methods staring with a",
+    category: "sclang",
+}
+
+export const ScRememberImplCommand: Command = {
+    id: "sc.rememberImpl",
+    label: "Remember picked implementation",
+    category: "sclang",
+}
+
+
 @injectable()
 export class ScCommandContribution implements CommandContribution, KeybindingContribution {
     @inject(ScService) protected readonly scService!: ScService;
     @inject(EditorManager) protected readonly editorManager!: EditorManager;
     @inject(MessageService) protected readonly messageService!: MessageService;
     @inject(FlashDecoration) protected readonly flash!: FlashDecoration;
+    @inject(ScAutocomplete) protected readonly autocomplete!: ScAutocomplete;
 
     registerCommands(registry: CommandRegistry): void {
         registry.registerCommand(SclangStartCommand, {
@@ -79,6 +94,21 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
             execute: () => {
                 this.scService.evaluate("CmdPeriod.run;", false);
             }
+        })
+
+        registry.registerCommand(ScQueryTestCommand, {
+            execute: async() => {
+                const refs = await this.scService.queryMethod("a", "SinOsc", "class");
+                this.messageService.info(`${refs.length} refs: ${JSON.stringify(refs)}`);
+                if (refs.length > 0) {
+                    const args = await this.scService.queryArgs(refs[0]);
+                    this.messageService.info(`args of ${refs[0].name}: ${JSON.stringify(args)}`);
+                }
+            }
+        })
+
+        registry.registerCommand(ScRememberImplCommand, {
+            execute: (ref: ScMethodRef, uri: string) => this.autocomplete.remember(uri, ref)
         })
     }
 

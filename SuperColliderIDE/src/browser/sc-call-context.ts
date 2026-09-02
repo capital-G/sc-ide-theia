@@ -3,8 +3,22 @@ import { SC_ARRAY, SC_CLASS_REGEX, SC_FUNCTION, SC_FLOAT, SC_INTEGER, SC_STRING,
 const IDENT = /[A-Za-z0-9_]/;
 const SC_RECEIVER_SECTION = /(~?[A-Za-z_][A-Za-z0-9_]*|\\[A-Za-z0-9_]+|\d+(?:\.\d+)?)$/;
 
+export interface ScMethodPrefix {
+    receiver?: string,
+    prefix: string,
+    methodStart: number,
+}
+
+export interface ScCallContext {
+    receiver?: string;
+    method: string;
+    /** 0-based index of the argument under the cursor */
+    argIndex: number;
+    methodStart: number;
+}
+
 /** splits e.g. `SinOsc.a` into receiver: `SinOsc`, prefix: `a`, methodStart: <offset> */
-export function parseMethodPrefix(linePrefix: string): {receiver?: string, prefix: string; methodStart: number } | undefined {
+export function parseMethodPrefix(linePrefix: string): ScMethodPrefix | undefined {
     let start = linePrefix.length;
     while (start > 0 && IDENT.test(linePrefix[start -1])) { start--; }
     const prefix= linePrefix.slice(start);
@@ -36,3 +50,46 @@ export function guessReceiver(receiver: string): string | undefined {
     return undefined;
 }
 
+/** Scan forward for closing bracket */
+export function findCallContext(text: string): ScCallContext | undefined {
+    const stack: {open: number, commas: number }[] = [];
+    let i = 0;
+
+    while (i < text.length) {
+        const c = text[i];
+        
+        if(c === '(' || c === '[' || c === '{') {
+            stack.push({ open: i, commas: 0});
+            i++;
+            continue;
+        }
+        if(c === ')' || c == ']' || c === '}') {
+            stack.pop();
+            i++;
+            continue;
+        }
+        if(c === ',' && stack.length > 0) {
+            stack[stack.length - 1].commas++;
+            i++;
+            continue;
+        }
+        i++;
+    }
+    
+    // search for the innermost unclosed '(' that
+    // has a method call in front of it
+    for (let s = stack.length -1; s >= 0; s--) {
+        if(text[stack[s].open] !== '(') {continue;}
+        const head = parseMethodPrefix(text.slice(0, stack[s].open));
+        if (head?.prefix) {
+            return {
+                receiver: head.receiver,
+                method: head.prefix,
+                argIndex: stack[s].commas,
+                methodStart: head.methodStart
+            };
+        }
+    }
+
+    return undefined;
+}

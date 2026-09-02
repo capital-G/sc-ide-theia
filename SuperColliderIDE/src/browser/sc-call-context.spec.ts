@@ -1,6 +1,6 @@
 import 'mocha';
 import { expect } from 'chai';
-import { parseMethodPrefix, guessReceiver } from './sc-call-context';
+import { parseMethodPrefix, guessReceiver, findCallContext } from './sc-call-context';
 
 
 describe('parseMethodPrefix', () => {
@@ -90,4 +90,38 @@ describe('guessReceiver', () => {
     it("guess integer 42", () => {
         expect(guessReceiver("42")).equal("Integer")
     });
+});
+
+describe('findCallContext', () => {
+    it("simple call", () => {
+        expect(findCallContext("SinOsc.kr(")).to.deep.equal({
+            receiver: 'SinOsc',
+            method: 'kr',
+            argIndex: 0,
+            methodStart: 7,
+        })
+    });
+
+    it("nested calls", () => {
+        expect(findCallContext("SinOsc.kr(20.linexp(")).to.deep.equal({
+            receiver: "20",
+            method: 'linexp',
+            argIndex: 0,
+            methodStart: 13,
+        })
+    })
+
+
+    it("nested calls with closed", () => {
+        expect(findCallContext("SinOsc.kr(30.0.clip(0.2, 0.5), 20.linexp, ")).to.deep.equal({
+            receiver: 'SinOsc',
+            method: 'kr',
+            argIndex: 2,
+            methodStart: 7,
+        })
+    })
+
+    it("no call", () => {
+        expect(findCallContext("SinOsc.kr(30.0)")).equals(undefined)
+    })
 });
