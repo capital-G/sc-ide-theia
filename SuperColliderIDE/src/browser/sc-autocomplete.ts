@@ -4,9 +4,9 @@ import { InterpreterState, SC_CLASS_REGEX, SC_ENV_REGEX, SC_QUERY_LIMIT, ScArg, 
 import { ScClientImpl } from "./sc-client-impl";
 import * as monaco from '@theia/monaco-editor-core';
 import { SC_LANGUAGE_ID } from "./sc-language-contribution";
-import { findCallContext, guessReceiver, parseMethodPrefix, ScCallContext, ScMethodPrefix } from "./sc-call-context";
+import { findCallContext, guessReceiver, parseMethodPrefix, remainingArgs, ScCallContext, ScMethodPrefix } from "./sc-call-context";
 import { ScRememberImplCommand } from "./sc-contribution";
-
+import { MonacoEditor } from "@theia/monaco/lib/browser/monaco-editor";
 
 interface ScCompletionItem extends monaco.languages.CompletionItem {
     scRef: ScMethodRef
@@ -18,17 +18,20 @@ export class ScAutocomplete implements FrontendApplicationContribution {
     @inject(ScClientImpl) protected readonly client! : ScClientImpl;
 
     protected state: InterpreterState = { kind: 'stopped' };
-    
+
     // arg caching for signature help
-    activeHelp: {args: ScArg[]; index: number} | undefined;
+    activeHelp: {args: ScArg[]; index: number; ctx: ScCallContext; uri: string} | undefined;
     private readonly argCache = new Map<string, ScArg[]>();
     private readonly picks = new Map<string, ScMethodRef>();
     // max lines to look ahead for searching end of brackets enclosure
     private static readonly SCAN_LINES = 50;
+
     private static key(ref: ScMethodRef): string {
         return `${ref.ownerClass}:${ref.isClassMethod ? '*' : ''}${ref.name}`;
     }
 
+    /** arg placeholder w/o any value, e.g. `name: ` */
+    private static readonly PLACEHOLDER = /^\s*([a-z][A-Za-z0-9_]*)\s*:\s*$/;
 
     onStart(): void {
         this.client.onStateChangedEvent(state => {
@@ -145,14 +148,12 @@ export class ScAutocomplete implements FrontendApplicationContribution {
     ): Promise<monaco.languages.SignatureHelpResult | undefined> {
         if (this.state.kind !== "running" || !this.state.compiled) { return undefined; }
 
-        const text = model.getValueInRange({
-            startLineNumber: Math.max(1, position.lineNumber - ScAutocomplete.SCAN_LINES),
-            startColumn: 1,
-            endLineNumber: position.lineNumber,
-            endColumn: position.column
-        });
-        const ctx = findCallContext(text);
-        if(!ctx) {this.activeHelp = undefined; return undefined;}
+        const { text, cursor } = this.windowAround(model, position);
+        const ctx = findCallContext(text, cursor);
+        if(!ctx) {
+            this.activeHelp = undefined;
+            return undefined;
+        }
 
         const ref = await this.refFor(model, ctx);
         if(!ref || token.isCancellationRequested) { return undefined; }
@@ -167,18 +168,32 @@ export class ScAutocomplete implements FrontendApplicationContribution {
             return {
                 label: [start, start + shown.length] as [number, number]
             }
-        })
+        });
         label += ')';
 
-        const index = Math.min(ctx.argIndex, args.length - 1);
-        this.activeHelp = {args, index};
+        // keywords args need to be in order for signature
+        const seg = ctx.segments[ctx.cursorSegment];
+        const named = seg?.keyword ? args.findIndex(a => a.name === seg.keyword) : -1;
+        const index = named >= 0 ? named : Math.min(ctx.cursorSegment, args.length - 1);
+
+        this.activeHelp = {
+            args,
+            index,
+            ctx,
+            uri: model.uri.toString(),
+        };
 
         return {
             value: {
-                signatures: [{label, documentation: ScAutocomplete.key(ref), parameters}],
+                signatures: [{
+                    label,
+                    documentation: ScAutocomplete.key(ref),
+                    parameters
+                }],
                 activeSignature: 0,
                 activeParameter: index,
             },
+            // some runtime problem otherwise?
             dispose: () => {}
         }
     }
@@ -218,11 +233,87 @@ export class ScAutocomplete implements FrontendApplicationContribution {
         return (await this.scService.queryMethod(context.method))[0];
     }
 
+    cycleArgName(editor: MonacoEditor, forward: boolean): void {
+        const help = this.activeHelp;
+        const control = editor.getControl();
+        const model = control.getModel();
+        const position = control.getPosition();
+        if(!help || !model || !position) {return;}
+
+        const {text, startOffset, cursor} = this.windowAround(model, position);
+        const ctx = findCallContext(text, cursor);
+        if(!ctx) { return; }
+
+        const seg = ctx.segments[ctx.cursorSegment];
+        const head = text.slice(seg.start, cursor);
+        const placeholder = ScAutocomplete.PLACEHOLDER.exec(head);
+
+        const remaining = remainingArgs(ctx, help.args, head);
+        if(remaining.length === 0 || (remaining.length === 1 && remaining[0].name === placeholder?.[1])) {
+            // nothing to do in this case :)
+            // @todo we could close the call?
+            return;
+        }
+
+        const next = ScAutocomplete.step(remaining, placeholder?.[1], forward);
+
+        if(placeholder) {
+            // replace e.g. `freq: ` in place - keep whitespaces :)
+            const lead = /^\s*/.exec(head)![0];
+            control.executeEdits('sc.cycleArgName', [{
+                range: monaco.Range.fromPositions(model.getPositionAt(startOffset + seg.start), position),
+                text: `${lead}${next.name}: `,
+                forceMoveMarkers: true,
+            }]);
+        } else {
+            /// commit and start a new segment
+            const insert = `${head.trim().length >0 ? ', ' : ''}${next.name}: `;
+            control.executeEdits('sc.cycleArgName', [{
+                range: monaco.Range.fromPositions(position, position),
+                text: insert,
+                forceMoveMarkers: true,
+            }]);
+        }
+        control.trigger('sc', 'editor.action.triggerParameterHints', {});
+    }
+
+    private static step(remaining: ScArg[], current: string | undefined, forward: boolean): ScArg {
+        if(!current) {
+            return forward ? remaining[0] : remaining[remaining.length -1];
+        }
+        const at = remaining.findIndex(a => a.name === current);
+        if (at < 0) { return remaining[0]; }
+        const n = remaining.length;
+        return remaining[(at + (forward ? 1 : n-1)) % n];
+    }
+
     /** Gets called when a method implementationwas selected from autocomplete
      *  so we can pick this up later.
      *  This gets invoked through a command.
      */
     remember(uri: string, ref: ScMethodRef): void {
         this.picks.set(`${uri}#${ref.name}`, ref);
+    }
+
+    /** The window must extend past the cursor in order to capture the current call context */
+    private windowAround(model: monaco.editor.ITextModel, position: monaco.Position): {
+        text: string,
+        startOffset: number,
+        cursor: number
+    } {
+        const startLine = Math.max(1, position.lineNumber - ScAutocomplete.SCAN_LINES);
+        const endLine = Math.min(model.getLineCount(), position.lineNumber + ScAutocomplete.SCAN_LINES);
+        const range = new monaco.Range(
+            startLine,
+            1,
+            endLine,
+            model.getLineMaxColumn(endLine)
+        );
+        const startOffset = model.getOffsetAt(range.getStartPosition());
+        return {
+            text: model.getValueInRange(range),
+            startOffset,
+            cursor: model.getOffsetAt(position) - startOffset,
+        }
     }
 }

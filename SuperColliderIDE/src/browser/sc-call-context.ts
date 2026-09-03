@@ -122,7 +122,7 @@ export function findCallContext(text: string, cursor: number = text.length): ScC
     while (i < text.length) {
         const c = text[i];
 
-        if(c === '"' || c === '"') {
+        if(c === '"' || c === "'") {
             const next = skipQuoted(text, i, c);
             // cursor inside string/symbol?
             if ( i < cursor  && next > cursor) { return undefined; }

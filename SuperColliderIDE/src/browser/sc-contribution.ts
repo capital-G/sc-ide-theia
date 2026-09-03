@@ -6,7 +6,7 @@ import { EditorManager, Range, TextEditor } from '@theia/editor/lib/browser';
 import { evalRangeAt } from './eval-region';
 import { FlashDecoration } from './sc-flash-decoration';
 import { ScAutocomplete } from './sc-autocomplete';
-
+import { MonacoEditor } from "@theia/monaco/lib/browser/monaco-editor";
 
 export const SclangStartCommand : Command = {
     id: 'sclang.start',
@@ -47,6 +47,18 @@ export const ScQueryTestCommand: Command = {
 export const ScRememberImplCommand: Command = {
     id: "sc.rememberImpl",
     label: "Remember picked implementation",
+    category: "sclang",
+}
+
+export const ScCycleArgNameCommand: Command = {
+    id: "sc.cycleArgName",
+    label: "Cycle to the next keyword argument",
+    category: "sclang",
+}
+
+export const ScCycleArgNameBackCommand: Command = {
+    id: "sc.cycleArgNameBack",
+    label: "Cycle to the previous keyword argument",
     category: "sclang",
 }
 
@@ -110,6 +122,23 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
         registry.registerCommand(ScRememberImplCommand, {
             execute: (ref: ScMethodRef, uri: string) => this.autocomplete.remember(uri, ref)
         })
+
+        // capture tab only if a signature is displayed
+        registry.registerCommand(ScCycleArgNameCommand, {
+            isEnabled: () => !!this.autocomplete.activeHelp,
+            execute: () => {
+                const editor = MonacoEditor.getCurrent(this.editorManager);
+                if(editor) {this.autocomplete.cycleArgName(editor, true); }
+            }
+        })
+
+        registry.registerCommand(ScCycleArgNameBackCommand, {
+            isEnabled: () => !!this.autocomplete.activeHelp,
+            execute: () => {
+                const editor = MonacoEditor.getCurrent(this.editorManager);
+                if(editor) {this.autocomplete.cycleArgName(editor, false); }
+            }
+        })
     }
 
     registerKeybindings(keybindings: KeybindingRegistry): void {
@@ -122,6 +151,18 @@ export class ScCommandContribution implements CommandContribution, KeybindingCon
         keybindings.registerKeybinding({
             command: ScStopServer.id,
             keybinding: "cmd+.",
+        });
+
+        keybindings.registerKeybinding({
+            command: ScCycleArgNameCommand.id,
+            keybinding: 'tab',
+            when: 'editorTextFocus && parameterHintsVisible && !suggestWidgetVisible && !inSnippetMode'
+        });
+
+        keybindings.registerKeybinding({
+            command: ScCycleArgNameBackCommand.id,
+            keybinding: 'shift+tab',
+            when: 'editorTextFocus && parameterHintsVisible && !suggestWidgetVisible && !inSnippetMode'
         });
     }
 
