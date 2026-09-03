@@ -1,6 +1,6 @@
 import { FrontendApplicationContribution } from "@theia/core/lib/browser";
 import { inject, injectable } from "@theia/core/shared/inversify";
-import { InterpreterState, SC_CLASS_REGEX, SC_QUERY_LIMIT, ScArg, ScMethodRef, ScMethodSide, ScService } from "../common/protocol";
+import { InterpreterState, SC_CLASS_REGEX, SC_ENV_REGEX, SC_QUERY_LIMIT, ScArg, ScMethodRef, ScMethodSide, ScService } from "../common/protocol";
 import { ScClientImpl } from "./sc-client-impl";
 import * as monaco from '@theia/monaco-editor-core';
 import { SC_LANGUAGE_ID } from "./sc-language-contribution";
@@ -199,9 +199,11 @@ export class ScAutocomplete implements FrontendApplicationContribution {
         let cls = context.receiver ? guessReceiver(context.receiver) : undefined;
 
         // second: todo: ask language what the env variable ~foo has access to
-        // if(!cls && context.receiver && SC_ENV_REGEX.test(context.receiver)) {
-        //     // cls = await this.scService.queryEnvClass(ctx.receiver.slice(1));
-        // }
+        if(!cls && context.receiver && SC_ENV_REGEX.test(context.receiver)) {
+            // remove ~ for query
+            cls = await this.scService.queryEnvClass(context.receiver.slice(1));
+        }
+
         if (cls) {
             const side: ScMethodSide = SC_CLASS_REGEX.test(context.receiver!) ? 'class' : 'instance';
             const refs = await this.scService.queryMethod(context.method, cls, side);

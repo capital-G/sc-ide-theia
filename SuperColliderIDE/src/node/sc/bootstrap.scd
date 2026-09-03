@@ -91,6 +91,12 @@
 	});
 };
 
+// provides env autocomplete lookup by returning the class of an env variable
+~envClassLookup = {|name|
+	var val = currentEnvironment[name];
+	val.isNil.if([], { [val.class.name.asString] });
+};
+
 ~theiaIDE = {|id, selector ... searchArgs|
 	var reply = switch(selector)
 		{\class} {~classLookup.(*searchArgs)}
@@ -103,7 +109,8 @@
 			searchArgs[0],
 			searchArgs[1],
 			searchArgs[2] == "class",
-		)};
+		)}
+		{\envClass} {~envClassLookup.(searchArgs[0])};
 	// reply could be empty on unknown lookup
 	~n.sendMsg("/complete", id, *(reply ? []));
 };

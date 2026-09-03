@@ -40,6 +40,8 @@ export enum QuerySelector {
     METHOD_LOOKUP = "method",
     // ~theiaIde.("args", this.query, ref.name,ref.ownerClass, ref.isClassMethod ? "class" : "instance")
     ARGS_LOOKUP = "args",
+    // ~foo becomes "foo"
+    ENV_CLASS_LOOKUP = "envClass",
 }
 
 /**
@@ -66,6 +68,7 @@ export interface ScService extends RpcServer<ScClient> {
     queryClass(text: string): Promise<string[]>;
     queryMethod(text: string, receiver?: string, side?: ScMethodSide): Promise<ScMethodRef[]>;
     queryArgs(ref: ScMethodRef): Promise<ScArg[] | undefined>;
+    queryEnvClass(text: string): Promise<string | undefined>;
 }
 
 export interface ScClient {

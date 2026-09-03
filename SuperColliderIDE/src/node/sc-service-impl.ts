@@ -173,6 +173,11 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
         });
     }
 
+    async queryEnvClass(name: string): Promise<string | undefined> {
+        const rows = await this.query(QuerySelector.ENV_CLASS_LOOKUP, name);
+        return rows?.[0];
+    }
+
     protected onOsc(msg: OSC.Message): void {
         // once we got a osc message, we are connected for sure :)
         if(this.state.kind === "running" && !this.state.channelUp) {
