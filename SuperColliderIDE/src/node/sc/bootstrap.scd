@@ -66,7 +66,7 @@
 	});
 	
 	methods.keep(100).collect({|m|
-		"%\t\%\t%\t%".format(
+		"%\t%\t%\t%".format(
 			m.name,
 			m.className,
 			m.isClassMethod.if(\c, \i),
