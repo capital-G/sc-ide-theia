@@ -95,29 +95,74 @@ describe('guessReceiver', () => {
 describe('findCallContext', () => {
     it("simple call", () => {
         expect(findCallContext("SinOsc.kr(")).to.deep.equal({
-            receiver: 'SinOsc',
-            method: 'kr',
             argIndex: 0,
+            closed: false,
+            cursorSegment: 0,
+            implicitNew: false,
+            method: "kr",
             methodStart: 7,
+            open: 9,
+            receiver: "SinOsc",
+            segments: [{
+                end: 10,
+                keyword: undefined,
+                start: 10,
+                text: "",
+                value: "",
+            }]
         })
     });
 
     it("nested calls", () => {
         expect(findCallContext("SinOsc.kr(20.linexp(")).to.deep.equal({
-            receiver: "20",
-            method: 'linexp',
             argIndex: 0,
+            closed: false,
+            cursorSegment: 0,
+            implicitNew: false,
+            method: "linexp",
             methodStart: 13,
+            open: 19,
+            receiver: "20",
+            segments: [{
+                end: 20,
+                keyword: undefined,
+                start: 20,
+                text: "",
+                value: "",
+            }]
         })
     })
 
 
     it("nested calls with closed", () => {
         expect(findCallContext("SinOsc.kr(30.0.clip(0.2, 0.5), 20.linexp, ")).to.deep.equal({
-            receiver: 'SinOsc',
-            method: 'kr',
             argIndex: 2,
+            closed: false,
+            cursorSegment: 2,
+            implicitNew: false,
+            method: "kr",
             methodStart: 7,
+            open: 9,
+            receiver: "SinOsc",
+            segments: [{
+                end: 29,
+                keyword: undefined,
+                start: 10,
+                text: "30.0.clip(0.2, 0.5)",
+                value: "30.0.clip(0.2, 0.5)",
+            }, {
+                end: 40,
+                keyword: undefined,
+                start: 30,
+                text: " 20.linexp",
+                value: "20.linexp",
+            }, {
+                end: 42,
+                keyword: undefined,
+                start: 41,
+                text: " ",
+                value: "",
+            }]
         })
     })
 
@@ -127,23 +172,142 @@ describe('findCallContext', () => {
 
     it("skip block comment", () => {
         expect(findCallContext("SinOsc.kr(hello /* comment */")).to.deep.equal({
-            receiver: "SinOsc",
-            method: "kr",
             argIndex: 0,
+            closed: false,
+            cursorSegment: 0,
+            implicitNew: false,
+            method: "kr",
             methodStart: 7,
+            open: 9,
+            receiver: "SinOsc",
+            segments: [{
+                end: 29,
+                keyword: undefined,
+                start: 10,
+                text: "hello /* comment */",
+                value: "hello /* comment */",
+            }]
         })
     })
 
     it("skip quotes", () => {
         expect(findCallContext("SinOsc.kr(hello, \"foo\", ")).to.deep.equal({
-            receiver: "SinOsc",
-            method: "kr",
             argIndex: 2,
+            closed: false,
+            cursorSegment: 2,
+            implicitNew: false,
+            method: "kr",
             methodStart: 7,
+            open: 9,
+            receiver: "SinOsc",
+            segments: [{
+                end: 15,
+                keyword: undefined,
+                start: 10,
+                text: "hello",
+                value: "hello",
+            }, {
+                end: 22,
+                keyword: undefined,
+                start: 16,
+                text: " \"foo\"",
+                value: "\"foo\"",
+            }, {
+                end: 24,
+                keyword: undefined,
+                start: 23,
+                text: " ",
+                value: "",
+            }]
         })
     })
 
     it("skip comment", () => {
         expect(findCallContext("SinOsc.kr(hello, //")).equals(undefined)
     })
+
+    it("test implicit new", () => {
+        expect(findCallContext("Pwhite(")).to.deep.equal({
+            argIndex: 0,
+            closed: false,
+            cursorSegment: 0,
+            implicitNew: true,
+            method: "new",
+            methodStart: 0,
+            open: 6,
+            receiver: "Pwhite",
+            segments: [{
+                end: 7,
+                keyword: undefined,
+                start: 7,
+                text: "",
+                value: "",
+            }]
+        })
+    })
+
+    it("test non implicit new", () => {
+        expect(findCallContext("Pwhite.new(")).to.deep.equal({
+            argIndex: 0,
+            closed: false,
+            cursorSegment: 0,
+            implicitNew: false,
+            method: "new",
+            methodStart: 7,
+            open: 10,
+            receiver: "Pwhite",
+            segments: [{
+                end: 11,
+                keyword: undefined,
+                start: 11,
+                text: "",
+                value: "",
+            }]
+        })
+    })
+
+    it("test no head", () => {
+        expect(findCallContext("x = (foo + bar")).equals(undefined)
+    })
+
+    it("test keyword matching", () => {
+        expect(findCallContext("SinOsc.ar(freq: 440,")).to.deep.equals({
+            argIndex: 1,
+            closed: false,
+            cursorSegment: 1,
+            implicitNew: false,
+            method: "ar",
+            methodStart: 7,
+            open: 9,
+            receiver: "SinOsc",
+            segments: [{
+                end: 19,
+                keyword: "freq",
+                start: 10,
+                text: "freq: 440",
+                value: "440",
+            }, {
+                end: 20,
+                keyword: undefined,
+                start: 20,
+                text: "",
+                value: "",
+            }]
+        })
+    })
+
+    it("test cursor in kwarg", () => {
+        expect(findCallContext("SinOsc.ar(mul: , add: 0.5)", "SinOsc.ar(mul: ".length)?.segments[1].keyword).equals("add")
+    })
+
+    it("test cursor in call", () => {
+        expect(findCallContext("SinOsc.ar(420)", 13)?.cursorSegment).equals(0)
+    })
+
+    it("test cursor outside call", () => {
+        expect(findCallContext("SinOsc.ar(420)", 15)).equals(undefined)
+    })
+
+    
+
 });

@@ -1,7 +1,8 @@
-import { SC_ARRAY, SC_CLASS_REGEX, SC_FUNCTION, SC_FLOAT, SC_INTEGER, SC_STRING, SC_SYMBOL, SC_METHOD_NAME } from "../common/protocol";
+import { SC_ARRAY, SC_CLASS_REGEX, SC_FUNCTION, SC_FLOAT, SC_INTEGER, SC_STRING, SC_SYMBOL, SC_METHOD_NAME, SC_CLASS_TAIL_REGEX, ScArg } from "../common/protocol";
 
 const IDENT = /[A-Za-z0-9_]/;
 const SC_RECEIVER_SECTION = /(~?[A-Za-z_][A-Za-z0-9_]*|\\[A-Za-z0-9_]+|\d+(?:\.\d+)?)$/;
+const KEYWORD_HEAD = /^\s*([a-z][A-Za-z0-9_]*)\s*:/;
 
 export interface ScMethodPrefix {
     receiver?: string,
@@ -9,12 +10,50 @@ export interface ScMethodPrefix {
     methodStart: number,
 }
 
+export interface ScArgSegment {
+    /** offset of the first char after '(' or ',' */
+    start: number;
+    /** offset one past the last char - the ',' or the ') */
+    end: number;
+    /** the raw slice [start, end] */
+    text: string;
+    /** set when the segment is a keyword, i.e. 'name: ' */
+    keyword?: string;
+    /** trimmed text after the keyword or in general */
+    value: string;
+}
+
 export interface ScCallContext {
     receiver?: string;
     method: string;
-    /** 0-based index of the argument under the cursor */
-    argIndex: number;
+    /** written `Pwhite(` rather than `Pwhite.new(` */
+    implicitNew: boolean;
     methodStart: number;
+    /** offset of the `(` */
+    open: number;
+    /** a matching `)` was found inside the window */
+    closed: boolean;
+    segments: ScArgSegment[];
+    cursorSegment: number;
+    /** alias of cursorSegment, kept for the existing call sites */
+    argIndex: number;
+}
+
+interface Frame {
+    open: number;
+    kind: '(' | '[' | '{';
+    /** offstes where each segment begins; argStarts[0] === open + 1 */
+    argStarts: number[];
+    close?: number;
+    /** first `;` seen while this frame was on top - an unclosed arg list has none */
+    semi?: number;
+}
+
+interface ScCallHead {
+    receiver?: string;
+    method: string;
+    methodStart: number;
+    implicitNew: boolean;
 }
 
 /** splits e.g. `SinOsc.a` into receiver: `SinOsc`, prefix: `a`, methodStart: <offset> */
@@ -74,50 +113,167 @@ function skipBlockComment(text: string, i: number): number {
 
 
 /** Scan forward for closing bracket */
-export function findCallContext(text: string): ScCallContext | undefined {
-    const stack: {open: number, commas: number }[] = [];
+export function findCallContext(text: string, cursor: number = text.length): ScCallContext | undefined {
+    const stack: Frame[] = [];
+    // popped frames that still surround the cursor
+    const spanning: Frame[] = [];
     let i = 0;
 
     while (i < text.length) {
         const c = text[i];
 
-        if(c === '"' || c === '"') { i = skipQuoted(text, i, c); continue; }
-        // todo: skip comment
-        if(c === "/" && text[i+1] === "/") { return undefined;}
-        if(c === "/" && text[i+1] === "*") { i = skipBlockComment(text, i); continue; }
+        if(c === '"' || c === '"') {
+            const next = skipQuoted(text, i, c);
+            // cursor inside string/symbol?
+            if ( i < cursor  && next > cursor) { return undefined; }
+            i = next;
+            continue;
+        }
+        // $a is a char literal
+        if(c === "$") { i += 2; continue; }
+
+        // skip comments
+        if(c === "/" && text[i+1] === "/") {
+            const nl = text.indexOf("\n", i);
+            // cursor inside comment?
+            if (nl < 0 || nl >= cursor) { return undefined; }
+            i = nl + 1;
+            continue;
+        }
+        if(c === "/" && text[i+1] === "*") {
+            const next = skipBlockComment(text, i);
+            // cursor inside block comment?
+            if (i < cursor && next > cursor) { return undefined; }
+            i = next;
+            continue;
+        }
         
         if(c === '(' || c === '[' || c === '{') {
-            stack.push({ open: i, commas: 0});
+            stack.push({ open: i, kind: c, argStarts: [i+1]});
             i++;
             continue;
         }
         if(c === ')' || c == ']' || c === '}') {
-            stack.pop();
+            const frame = stack.pop();
+            if(frame) {
+                frame.close = i;
+                if(frame.open < cursor && i >= cursor) {spanning.push(frame);}
+            }
             i++;
             continue;
         }
         if(c === ',' && stack.length > 0) {
-            stack[stack.length - 1].commas++;
+            stack[stack.length - 1].argStarts.push(i+1);
+            i++;
+            continue;
+        }
+
+        if(c === ";" && stack.length > 0) {
+            // in case we don't have a closing `)` we may encounter a `;`
+            // we will push everything that follows to the next frame.
+            // Within a function `{ }` the argument belongs to that nested frame.
+            const frame = stack[stack.length - 1];
+            if (frame.semi === undefined) { frame.semi = i;}
             i++;
             continue;
         }
         i++;
     }
-    
-    // search for the innermost unclosed '(' that
-    // has a method call in front of it
-    for (let s = stack.length -1; s >= 0; s--) {
-        if(text[stack[s].open] !== '(') {continue;}
-        const head = parseMethodPrefix(text.slice(0, stack[s].open));
-        if (head?.prefix) {
-            return {
-                receiver: head.receiver,
-                method: head.prefix,
-                argIndex: stack[s].commas,
-                methodStart: head.methodStart
-            };
+
+    const candidates = [...stack, ...spanning].filter(f => 
+        f.kind === '(' &&
+        f.open < cursor &&
+        (f.close !== undefined
+            ? f.close >= cursor
+            : f.semi === undefined || f.semi >= cursor
+        )
+    );
+    // sort by innermost
+    candidates.sort((a, b) => b.open - a.open);
+
+    for (const frame of candidates) {
+        const head = headFor(text, frame.open);
+        if(!head) continue;
+
+        const end = frame.close ?? frame.semi ?? text.length;
+        const segments = segmentsOf(text, frame, end);
+        const at = segments.findIndex(s => cursor >= s.start && cursor <= s.end);
+        const cursorSegment = at < 0 ? segments.length -1 : at;
+
+        return {
+            ...head,
+            open: frame.open,
+            closed: frame.close !== undefined,
+            segments,
+            cursorSegment,
+            argIndex: cursorSegment
         }
+
     }
 
     return undefined;
+}
+
+function headFor(text: string, open: number): ScCallHead | undefined {
+    const before = text.slice(0, open);
+    const dotted = parseMethodPrefix(before);
+    if(dotted?.prefix) {
+        return {
+            receiver: dotted.receiver,
+            method: dotted.prefix,
+            methodStart: dotted.methodStart,
+            implicitNew: false
+        };
+    }
+
+    // `Pwhite(` is syntax sugar for `Pwhite.new(`,
+    // but we don't want to match `x = (foo + bar)` or top level `(`.
+    // We can match for a capitalized identifier in front
+    const cls = SC_CLASS_TAIL_REGEX.exec(before);
+    if (cls && cls.index + cls[0].length === before.length) {
+        return {
+            receiver: cls[0],
+            method: 'new',
+            methodStart: cls.index,
+            implicitNew: true
+        };
+    }
+    
+    return undefined;
+}
+
+function segmentsOf(text: string, frame: Frame, end: number): ScArgSegment[] {
+    return frame.argStarts.map((start, i) => {
+        // next segment start past its comma
+        const stop = i + 1 < frame.argStarts.length ? frame.argStarts[i+1] -1 : end;
+        const raw = text.slice(start, stop);
+        const kw = KEYWORD_HEAD.exec(raw);
+        return {
+            start,
+            end: stop,
+            text: raw,
+            keyword: kw?.[1],
+            value: (kw ? raw.slice(kw[0].length) : raw).trim()
+        }
+    })
+}
+
+/** arguments that do not have been asigned yet, in signature order */
+export function remainingArgs(ctx: ScCallContext, args: ScArg[], cursorHead: string): ScArg[] {
+    const specified = new Set<string>();
+    // positional arguments must be upfront
+    let positional = true;
+
+    ctx.segments.forEach((seg, i) => {
+        const raw = i === ctx.cursorSegment ? cursorHead : seg.text;
+        const kw = KEYWORD_HEAD.exec(raw);
+        const value = (kw ? raw.slice(kw[0].length) : raw).trim();
+        if (kw) { positional = false; }
+        // empty -> return
+        if (value.length === 0) {return; }
+        if (kw) { specified.add(kw[1]); return; }
+        if (positional && args[i]) { specified.add(args[i].name); }
+    });
+
+    return args.filter(a => !specified.has(a.name));
 }
