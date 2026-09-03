@@ -96,7 +96,7 @@
 
 // provides env autocomplete lookup by returning the class of an env variable
 ~envClassLookup = {|name|
-	var val = currentEnvironment[name];
+	var val = currentEnvironment[name.asSymbol];
 	val.isNil.if([], { [val.class.name.asString] });
 };
 
