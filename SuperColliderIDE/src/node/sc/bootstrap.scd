@@ -40,6 +40,8 @@
 		[c] ++ c.superclasses;
 	});
 	var methods = [];
+	// use an identity set for lookup for efficiency
+	var seen = IdentitySet.new;
 	search = search.asSymbol;
 	
 	classes.do({|c|
@@ -52,9 +54,10 @@
 			receiverClass.isNil.if({
 				true
 			}, {
-				methods.collect({|m| m.name}).includes(method.name).not;
+				seen.includes(method.name).not;
 			});
 		}).do({|method|
+			seen.add(method.name);
 			methods = methods.add((
 				name: method.name,
 				className: base.name,
