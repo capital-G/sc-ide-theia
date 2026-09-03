@@ -93,7 +93,7 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
         this.process = undefined;
         for (const {resolve, timer} of this.pending.values()) {
             clearTimeout(timer);
-            resolve([]);
+            resolve(undefined);
         }
         this.pending.clear();
         this.setState({ kind: 'stopped', exitCode: code ?? undefined });
@@ -147,13 +147,12 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
         const rows = await this.query(QuerySelector.METHOD_LOOKUP, prefix, receiverClass ?? "", side ?? "");
         // need to split the rows now - which are tab separated
         return rows?.flatMap(row => {
-            const [name, ownerClass, kind, argCount] = row.split("\t");
+            const [name, ownerClass, kind] = row.split("\t");
             if (!name || !ownerClass || !kind ) {return []; }
             return [{
                 name,
                 ownerClass,
                 isClassMethod: kind == "c",
-                argCount: Number(argCount) || 0,
             }]
         }) ?? []
     }
