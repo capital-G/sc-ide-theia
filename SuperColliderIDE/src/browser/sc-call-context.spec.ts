@@ -124,4 +124,26 @@ describe('findCallContext', () => {
     it("no call", () => {
         expect(findCallContext("SinOsc.kr(30.0)")).equals(undefined)
     })
+
+    it("skip block comment", () => {
+        expect(findCallContext("SinOsc.kr(hello /* comment */")).to.deep.equal({
+            receiver: "SinOsc",
+            method: "kr",
+            argIndex: 0,
+            methodStart: 7,
+        })
+    })
+
+    it("skip quotes", () => {
+        expect(findCallContext("SinOsc.kr(hello, \"foo\", ")).to.deep.equal({
+            receiver: "SinOsc",
+            method: "kr",
+            argIndex: 2,
+            methodStart: 7,
+        })
+    })
+
+    it("skip comment", () => {
+        expect(findCallContext("SinOsc.kr(hello, //")).equals(undefined)
+    })
 });

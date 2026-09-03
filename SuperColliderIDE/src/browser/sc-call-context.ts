@@ -50,6 +50,29 @@ export function guessReceiver(receiver: string): string | undefined {
     return undefined;
 }
 
+function skipQuoted(text: string, i: number, quote: string): number {
+    i++;
+    while (i < text.length) {
+        if (text[i] === '\\') { i+= 2; continue; }
+        if (text[i] === quote ) { return i+1; }
+        i++;
+    }
+    return i;
+}
+
+function skipBlockComment(text: string, i: number): number {
+    i += 2;
+    let depth = 1;
+    while (i < text.length && depth > 0) {
+        if (text[i] === '/' && text[i+1] === "*") { depth++; i+=2; continue;}
+        if (text[i] === '*' && text[i+1] === "/") { depth--; i+=2; continue;}
+        i++;
+    }
+    return i;
+}
+
+
+
 /** Scan forward for closing bracket */
 export function findCallContext(text: string): ScCallContext | undefined {
     const stack: {open: number, commas: number }[] = [];
@@ -57,6 +80,11 @@ export function findCallContext(text: string): ScCallContext | undefined {
 
     while (i < text.length) {
         const c = text[i];
+
+        if(c === '"' || c === '"') { i = skipQuoted(text, i, c); continue; }
+        // todo: skip comment
+        if(c === "/" && text[i+1] === "/") { return undefined;}
+        if(c === "/" && text[i+1] === "*") { i = skipBlockComment(text, i); continue; }
         
         if(c === '(' || c === '[' || c === '{') {
             stack.push({ open: i, commas: 0});
