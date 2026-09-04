@@ -4,9 +4,7 @@ import { InterpreterState, QuerySelector, ScArg, ScClient, ScMethodRef, ScMethod
 import { EVALUATE, RECOMPILE, SILENT, SclangProcess } from "./sclang-process";
 import OSC from "osc-js";
 import { SclangUdp } from "./sclang-udp";
-
-import * as path from "path";
-import { readFile } from "fs/promises";
+import { SC_BOOTSTRAP } from "../common/sc-bootstrap";
 
 const SC_RESOLVE_TIMEOUT_MS = 500;
 
@@ -23,7 +21,7 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
     /** callback for compilation done */
     protected onCompileDone(): void {
         if (this.udpPort === undefined) {return;}
-        this.process?.write(`~port = ${this.udpPort};${this.bootstrapCode}`, SILENT);
+        this.process?.write(`~port = ${this.udpPort};${SC_BOOTSTRAP}`, SILENT);
     }
 
     /** autocomplete stuff */
@@ -31,14 +29,10 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
     protected readonly pending = new Map<number, { resolve(v: string[] | undefined): void; timer: NodeJS.Timeout }>();
     protected udpSocket: SclangUdp | undefined;
     protected udpPort: number | undefined;
-    protected bootstrapCode: string = "";
 
     async initialize(): Promise<void> {
         this.udpSocket = new SclangUdp(msg => this.onOsc(msg));
         this.udpPort = await this.udpSocket.start();
-
-        const file = process.env.SC_IDE_BOOTSTRAP ?? path.join(__dirname, 'sc', 'bootstrap.scd');
-        this.bootstrapCode = await readFile(file, 'utf-8');
     }
 
     setClient(client: ScClient | undefined): void {

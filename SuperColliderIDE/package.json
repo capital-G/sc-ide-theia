@@ -30,9 +30,10 @@
   "scripts": {
     "prepare": "npm run clean && npm run build",
     "clean": "rimraf lib",
-    "build": "tsc",
-    "watch": "tsc -w",
-    "test": "mocha \"./lib/**/*.spec.js\""
+    "build": "npm run gen:bootstrap && tsc",
+    "watch": "npm run gen:bootstrap && tsc -w",
+    "test": "mocha \"./lib/**/*.spec.js\"",
+    "gen:bootstrap": "node scripts/gen-bootstrap.mjs"
   },
   "theiaExtensions": [
     {
