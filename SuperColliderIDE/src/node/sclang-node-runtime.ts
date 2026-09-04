@@ -41,7 +41,9 @@ export class SclangNodeRuntime implements SclangRuntime {
     }
 
     get bootstrapPrologue(): string {
-        return `~theiaLimit = ${SC_QUERY_LIMIT};\n~port = ${this.port};`;
+        return `~theiaLimit = ${SC_QUERY_LIMIT};`
+            + `~theiaAddr = NetAddr("127.0.0.1", ${this.port});`
+            + `~theiaEmit = {|id, rows| ~theiaAddr.sendMsg("/complete", id, *rows)};`;
     }
 
     async start(): Promise<void> {

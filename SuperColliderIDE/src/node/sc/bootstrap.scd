@@ -2,8 +2,6 @@
 // * ~port => udp port from the IDE to send replies to
 // * ~theiaQueryLimit => query limit
 
-~n = NetAddr("127.0.0.1", ~port);
-
 // keep this in sync w/ SC_QUERY_LIMIT in protocol.ts
 ~theiaQueryLimit = 50;
 
@@ -106,5 +104,5 @@
 		)}
 		{\envClass} {~envClassLookup.(searchArgs[0])};
 	// reply could be empty on unknown lookup
-	~n.sendMsg("/complete", id, *(reply ? []));
+	~theiaEmit.(id, reply ? []);
 };
