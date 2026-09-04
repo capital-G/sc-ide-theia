@@ -1,36 +1,27 @@
+// following variables get injected through theia
+// * ~port => udp port from the IDE to send replies to
+// * ~theiaQueryLimit => query limit
+
 ~n = NetAddr("127.0.0.1", ~port);
 
-~classLookup = {|search|
-	var classes;
-	search = search.asString.toLower;
-	classes = Class.allClasses.select({|x| x.name.asString.toLower.contains(search).and(x.name.asString.beginsWith("Meta_").not)}).collect({|x| x.name.asString});
-	classes;
-};
+// keep this in sync w/ SC_QUERY_LIMIT in protocol.ts
+~theiaQueryLimit = 50;
 
-/*
-~methodLookup = {|search, receiverClass, side|
-	var classes;
-	var methods;
-	receiverClass = (receiverClass=="").if(nil, [receiverClass.asSymbol.asClass]);
-	classes = receiverClass ? Class.allClasses;
-	if(side=="class", {
-		// class of class - so meta class for static classes
-		classes = classes.collect({|x| x.class});
+// since we want to match case insensitive, we have to build a local cache of
+// lower case class names in order to avoid excessive string allocation
+~theiaClassNames = Class.allClasses.collect({|c| c.name.asString }).reject({|n| n.beginsWith("Meta_")});
+~theiaClassNamesLower = ~theiaClassNames.collect({|n| n.toLower(); });
+
+~classLookup = {|search|
+	var hits = [];
+	search = search.asString.toLower;
+	~theiaClassNamesLower.do({|lower, i|
+		lower.contains(search).if({
+			hits = hits.add(~theiaClassNames[i]);
+		});
 	});
-	methods = classes.collect({|class| class.methods.select({|method|
-		// asString seems expensive?
-		(search=="").if(true, {method.name.asString.beginsWith(search)})
-	})}).flatten.keep(100).select({|method| method.notNil}).collect({|method|
-		"%\t%\t%".format(
-			method.name,
-			// do not propagate meta classes - use instance or class method symbol instead
-			method.ownerClass.name.asString.replace("Meta_"),
-			method.ownerClass.isMetaClass.if(\i, \c)
-		)
-	});
-	methods;
+	hits.keep(~theiaQueryLimit);
 };
-*/
 
 ~methodLookup = {|search, receiverClass, meta|
 	var classes = (receiverClass.isNil).if({
@@ -68,8 +59,8 @@
 		});
 	});
 	
-	methods.keep(100).collect({|m|
-		"%\t%\t%\t%".format(
+	methods.keep(~theiaQueryLimit).collect({|m|
+		"%\t%\t%".format(
 			m.name,
 			m.className,
 			m.isClassMethod.if(\c, \i),

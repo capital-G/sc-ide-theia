@@ -1,6 +1,6 @@
 import { injectable } from "@theia/core/shared/inversify";
 import { BackendApplicationContribution } from "@theia/core/lib/node";
-import { InterpreterState, QuerySelector, ScArg, ScClient, ScMethodRef, ScMethodSide, ScService } from "../common/protocol";
+import { InterpreterState, QuerySelector, SC_QUERY_LIMIT, ScArg, ScClient, ScMethodRef, ScMethodSide, ScService } from "../common/protocol";
 import { EVALUATE, RECOMPILE, SILENT, SclangProcess } from "./sclang-process";
 import OSC from "osc-js";
 import { SclangUdp } from "./sclang-udp";
@@ -28,7 +28,7 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
     /** callback for compilation done */
     protected onCompileDone(): void {
         if (this.udpPort === undefined) {return;}
-        this.process?.write(`~port = ${this.udpPort};${SC_BOOTSTRAP}`, SILENT);
+        this.process?.write(`~port = ${this.udpPort};~theiaQueryLimit=${SC_QUERY_LIMIT};${SC_BOOTSTRAP}`, SILENT);
     }
 
     /** autocomplete stuff */
