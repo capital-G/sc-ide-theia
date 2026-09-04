@@ -18,8 +18,9 @@
   },
   "devDependencies": { "@theia/cli": "1.74.1" },
   "scripts": {
-    "bundle": "theia build --mode development",
-    "watch": "theia build --watch --mode development"
+    "bundle": "theia build --mode development && npm run assets",
+    "watch": "theia build --watch --mode development",
+    "assets": "mkdir -p lib/frontend/sc && cp wasm/sclang.js wasm/sclang.wasm wasm/sclang.data wasm/scsynth.js wasm/scsynth.wasm lib/frontend/sc/ && cp serve.json lib/frontend/"
   },
   "theia": {
     "target": "browser-only",
