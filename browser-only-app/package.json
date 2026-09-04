@@ -1,0 +1,28 @@
+{
+  "private": true,
+  "name": "browser-only-app",
+  "version": "0.0.0",
+  "dependencies": {
+    "@theia/core": "1.74.1",
+    "@theia/editor": "1.74.1",
+    "@theia/file-search": "1.74.1",
+    "@theia/filesystem": "1.74.1",
+    "@theia/markers": "1.74.1",
+    "@theia/messages": "1.74.1",
+    "@theia/monaco": "1.74.1",
+    "@theia/navigator": "1.74.1",
+    "@theia/preferences": "1.74.1",
+    "@theia/search-in-workspace": "1.74.1",
+    "@theia/workspace": "1.74.1",
+    "SuperColliderIDE": "0.0.0"
+  },
+  "devDependencies": { "@theia/cli": "1.74.1" },
+  "scripts": {
+    "bundle": "theia build --mode development",
+    "watch": "theia build --watch --mode development"
+  },
+  "theia": {
+    "target": "browser-only",
+    "frontend": { "config": { "applicationName": "SuperCollider IDE" } }
+  }
+}

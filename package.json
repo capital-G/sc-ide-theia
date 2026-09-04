@@ -7,17 +7,23 @@
   "scripts": {
     "build:browser": "npm --prefix browser-app run bundle",
     "build:electron": "npm --prefix electron-app run bundle",
+    "build:browser-only": "npm --prefix browser-only-app run bundle",
     "prepare": "lerna run prepare",
     "postinstall": "theia check:theia-version",
     "start:browser": "npm --prefix browser-app start",
     "start:electron": "npm --prefix electron-app start",
+    "start:browser-only": "npx serve browser-only-app/lib/frontend",
     "watch:browser": "lerna run --parallel watch --ignore electron-app",
-    "watch:electron": "lerna run --parallel watch --ignore browser-app"
+    "watch:electron": "lerna run --parallel watch --ignore browser-app",
+    "watch:browser-only": "lerna run --parallel watch --ignore electron-app"
   },
   "devDependencies": {
     "lerna": "^8.2.4"
   },
   "workspaces": [
-    "SuperColliderIDE", "browser-app", "electron-app"
+    "SuperColliderIDE",
+    "browser-app",
+    "electron-app",
+    "browser-only-app"
   ]
 }

@@ -39,6 +39,9 @@
     {
       "frontend": "lib/browser/sc-frontend-module",
       "backend": "lib/node/sc-backend-module"
+    },
+    {
+      "frontendOnly": "lib/browser-only/sc-frontend-only-module"
     }
   ]
 }
