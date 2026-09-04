@@ -226,5 +226,7 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
     dispose(): void {
         this.process?.kill();
         this.process = undefined;
+        this.udpSocket?.dispose();
+        this.udpSocket = undefined;
     }
 }
