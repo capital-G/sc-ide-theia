@@ -1,7 +1,7 @@
 import { injectable, inject } from '@theia/core/shared/inversify';
 import { Command, CommandContribution, CommandRegistry, MessageService } from '@theia/core/lib/common';
 import { ScMethodRef, ScService } from '../common/protocol';
-import { KeybindingContribution, KeybindingRegistry } from '@theia/core/lib/browser';
+import { FrontendApplication, FrontendApplicationContribution, KeybindingContribution, KeybindingRegistry } from '@theia/core/lib/browser';
 import { EditorManager, Range, TextEditor } from '@theia/editor/lib/browser';
 import { evalRangeAt } from './eval-region';
 import { FlashDecoration } from './sc-flash-decoration';
@@ -64,12 +64,16 @@ export const ScCycleArgNameBackCommand: Command = {
 
 
 @injectable()
-export class ScCommandContribution implements CommandContribution, KeybindingContribution {
+export class ScCommandContribution implements CommandContribution, KeybindingContribution, FrontendApplicationContribution {
     @inject(ScService) protected readonly scService!: ScService;
     @inject(EditorManager) protected readonly editorManager!: EditorManager;
     @inject(MessageService) protected readonly messageService!: MessageService;
     @inject(FlashDecoration) protected readonly flash!: FlashDecoration;
     @inject(ScAutocomplete) protected readonly autocomplete!: ScAutocomplete;
+
+    onDidInitializeLayout(app: FrontendApplication): void {
+        this.scService.startInterpreter();
+    }
 
     registerCommands(registry: CommandRegistry): void {
         registry.registerCommand(SclangStartCommand, {

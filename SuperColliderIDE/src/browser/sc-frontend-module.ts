@@ -28,6 +28,7 @@ export default new ContainerModule(bind => {
     bind(FrontendApplicationContribution).toService(ScDefaultLanguage);
     bind(ScAutocomplete).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(ScAutocomplete);
+    bind(FrontendApplicationContribution).toService(ScCommandContribution);
 
     bind(ScService).toDynamicValue(ctx => {
         const provider = ctx.container.get<ServiceConnectionProvider>(RemoteConnectionProvider);
