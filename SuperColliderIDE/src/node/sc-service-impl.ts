@@ -5,8 +5,15 @@ import { EVALUATE, RECOMPILE, SILENT, SclangProcess } from "./sclang-process";
 import OSC from "osc-js";
 import { SclangUdp } from "./sclang-udp";
 import { SC_BOOTSTRAP } from "../common/sc-bootstrap";
+import { access, constants } from "fs/promises";
 
 const SC_RESOLVE_TIMEOUT_MS = 500;
+
+/** first match wins - SC_LANG_PATH env for overwriting */
+const SCLANG_PATH_CANDIDATES = [
+    "/Applications/SuperCollider-3.14.1.app/Contents/MacOS/sclang",
+    "/Applications/SuperCollider.app/Contents/MacOS/sclang",
+]
 
 @injectable()
 export class ScServiceImpl implements ScService, BackendApplicationContribution {
@@ -48,9 +55,14 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
                 console.log("Interpreter already spawned - ignoring request");
                 return;
             }
+            const sclangPath = await this.resolveSclangPath();
+            if(!sclangPath) {
+                this.client?.onPost("[sclang] binary not found!\n");
+                return;
+            }
             this.process = new SclangProcess(
                 {
-                    sclangPath: "/Applications/SuperCollider-3.14.1.app/Contents/MacOS/sclang",
+                    sclangPath: sclangPath,
                     ideName: "theia"
                 },
                 chunk => this.onChunk(chunk),
@@ -192,8 +204,19 @@ export class ScServiceImpl implements ScService, BackendApplicationContribution 
         return this.state;
     }
 
-    resolveSclangPath(): Promise<string | undefined> {
-        return new Promise(() => undefined);
+    async resolveSclangPath(): Promise<string | undefined> {
+        const envPath = process.env.SC_LANG_PATH;
+        if (envPath) { return envPath; }
+        for (const pathCandidate of SCLANG_PATH_CANDIDATES) {
+            try {
+                await access(pathCandidate, constants.F_OK);
+                return pathCandidate;
+            } catch {
+                // try next one ;)
+            }
+        }
+        return undefined;
+
     }
 
     onStop(): void {
