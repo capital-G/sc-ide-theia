@@ -6,8 +6,8 @@ export const ScClient = Symbol("ScClient");
 
 export type InterpreterState = 
     | { kind: "stopped"; exitCode?: number }
-    | { kind: "starting", pid: number }
-    | { kind: "running", pid: number, compiled: boolean, channelUp: boolean};
+    | { kind: "starting", pid?: number }
+    | { kind: "running", pid?: number, compiled: boolean, channelUp: boolean};
 
 // capture by word
 export const SC_CLASS_REGEX = /^[A-Z][A-Za-z0-9_]*$/;
