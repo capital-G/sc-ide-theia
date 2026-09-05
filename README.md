@@ -1,86 +1,48 @@
 # SuperColliderIDE
 
+A next generation SuperCollider IDE based on the [Theia IDE Platform](https://theia-ide.org/theia-platform/).
+The goal is to have match the batteries included Qt IDE and have a common code base for desktop environments and the web using the wasm ports of sclang and scsynth.
 
-The example of how to build the Theia-based applications with the SuperColliderIDE.
+This is still in development.
 
-## Getting started
+The wasm IDE is currently deployed via <https://editor.dennis-scheiba.com/>.
 
-Please install all necessary [prerequisites](https://github.com/eclipse-theia/theia/blob/master/doc/Developing.md#prerequisites).
+## Development and building
 
-## Running the browser example
+The IDE can run in different configurations:
 
-    npm run build:browser
-    npm run start:browser
+* As standalone electron app
+* Running in the browser a local webserver which has access to local sclang
+* As a standalone web app which uses the sclang and scsynth wasm port
 
-*or:*
+One can use the `watch` configuration to have hot reload of the sources.
 
-    npm run build:browser
-    cd browser-app
-    npm start
+## Running the Electron app
 
-*or:* launch `Start Browser Backend` configuration from VS code.
+```shell
+npm prepare && npm build:electron && npm start:electron
+```
 
-Open http://localhost:3000 in the browser.
+## Running the browser app
 
-## Running the Electron example
+```shell
+npm prepare && npm build:browser && npm start:browser
+```
 
-    npm run build:electron
-    npm run start:electron
+Open <http://localhost:3000> in the browser.
 
-*or:*
+## Running the wasm app
 
-    npm run build:electron
-    cd electron-app
-    npm start
+```shell
+npm prepare && npm build:browser-only && npm start:browser-only
+```
 
-*or:* launch `Start Electron Backend` configuration from VS code.
-
-
-## Developing with the browser example
-
-Start watching all packages, including `browser-app`, of your application with
-
-    npm run watch:browser
-
-*or* watch only specific packages with
-
-    cd SuperColliderIDE
-    npm run watch
-
-and the browser example.
-
-    cd browser-app
-    npm run watch
-
-Run the example as [described above](#Running-the-browser-example)
-## Developing with the Electron example
-
-Start watching all packages, including `electron-app`, of your application with
-
-    npm run watch:electron
-
-*or* watch only specific packages with
-
-    cd SuperColliderIDE
-    npm run watch
-
-and the Electron example.
-
-    cd electron-app
-    npm run watch
-
-Run the example as [described above](#Running-the-Electron-example)
-
-## Publishing SuperColliderIDE
-
-Create a npm user and login to the npm registry, [more on npm publishing](https://docs.npmjs.com/getting-started/publishing-npm-packages).
-
-    npm login
-
-Publish packages with lerna to update versions properly across local packages, [more on publishing with lerna](https://github.com/lerna/lerna#publish).
-
-    npx lerna publish
+Open <http://localhost:3000> in the browser.
 
 ## Credits and Acknowledgements
 
 * Textmate grammar file from [vscode-supercollider](https://github.com/scztt/vscode-supercollider/blob/develop/syntaxes/supercollider.tmLanguage.json) by scztt [MIT]
+
+## License
+
+AGPL-3.0
