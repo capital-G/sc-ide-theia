@@ -14,3 +14,43 @@ jobs:
 
       - name: prettier
         run: npx prettier --check .
+
+  build-app:
+    runs-on: ${{ matrix.os-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os-version: ubuntu-24.04
+          - os-version: windows-2022
+          - os-version: macos-26
+    
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Setup linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            libx11-dev \
+            libxkbfile-dev \
+            libsecret-1-dev 
+
+      - name: Get dependencies
+        run: npm ci
+
+      - name: Prepare app
+        run: npm run prepare
+
+      - name: Run browser build
+        run: npm run build:browser
+
+      - name: Run electron build
+        run: npm run build:electron
