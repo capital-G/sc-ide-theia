@@ -20,13 +20,13 @@ One can use the `watch` configuration to have hot reload of the sources.
 ## Running the Electron app
 
 ```shell
-npm prepare && npm build:electron && npm start:electron
+npm run prepare && npm run build:electron && npm run start:electron
 ```
 
 ## Running the browser app
 
 ```shell
-npm prepare && npm build:browser && npm start:browser
+npm run prepare && npm run build:browser && npm run start:browser
 ```
 
 Open <http://localhost:3000> in the browser.
@@ -34,7 +34,7 @@ Open <http://localhost:3000> in the browser.
 ## Running the wasm app
 
 ```shell
-npm prepare && npm build:browser-only && npm start:browser-only
+npm run prepare && npm run build:browser-only && npm run start:browser-only
 ```
 
 Open <http://localhost:3000> in the browser.
