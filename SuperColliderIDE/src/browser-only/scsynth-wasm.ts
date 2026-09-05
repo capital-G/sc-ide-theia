@@ -12,8 +12,9 @@ interface ScsynthModule {
     getWorkletNode(): AudioWorkletNode;
 }
 
-
-type ScsynthFactory = (cfg: { locateFile(path: string): string }) => Promise<ScsynthModule>;
+type ScsynthFactory = (cfg: {
+    locateFile(path: string): string;
+}) => Promise<ScsynthModule>;
 
 export class ScsynthWasm {
     protected module: ScsynthModule | undefined;
@@ -27,7 +28,7 @@ export class ScsynthWasm {
         // pass osc messages back to sclang
         protected readonly onReply: (bytes: Uint8Array) => void,
         protected readonly baseUrl: string = SC_WASM_BASE_URL,
-    ) { }
+    ) {}
 
     boot(options: any): Promise<void> {
         // keep the worklet a singleton
@@ -40,46 +41,62 @@ export class ScsynthWasm {
         const { default: factory } = await importGlue<ScsynthFactory>(url);
 
         // same hack as w/ sclang
-        const module = await factory({ locateFile: path => `${this.baseUrl}/${path}` });
+        const module = await factory({
+            locateFile: (path) => `${this.baseUrl}/${path}`,
+        });
 
-        module.onPrint = line => this.postEmitter.fire(`${line}\n`);
-        module.onOscReply = bytes => this.onReply(new Uint8Array(bytes));
+        module.onPrint = (line) => this.postEmitter.fire(`${line}\n`);
+        module.onOscReply = (bytes) => this.onReply(new Uint8Array(bytes));
         module.boot(options);
         this.module = module;
 
         await module.getAudioContext().resume();
 
-        if ((options.numInputBusChannels ?? 0) > 0) { await this.connectMic(module); }
+        if ((options.numInputBusChannels ?? 0) > 0) {
+            await this.connectMic(module);
+        }
     }
 
     /** we have to pass the mic to scsynth */
     protected async connectMic(module: ScsynthModule): Promise<void> {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: false,
+            });
             const context = module.getAudioContext();
-            context.createMediaStreamSource(stream).connect(module.getWorkletNode());
+            context
+                .createMediaStreamSource(stream)
+                .connect(module.getWorkletNode());
         } catch (err) {
-            this.postEmitter.fire(`[scsynth] Failed to access audio input: ${err}\n`);
+            this.postEmitter.fire(
+                `[scsynth] Failed to access audio input: ${err}\n`,
+            );
         }
     }
 
-    sendOsc(bytes: Uint8Array): void { this.module?.sendOsc(bytes); }
+    sendOsc(bytes: Uint8Array): void {
+        this.module?.sendOsc(bytes);
+    }
 
     /**
      * some ai magic...
-     * 
+     *
      * sclang reaches JS through `emscripten_run_script`, which evaluates in *window* scope -
      * a module-scope binding is invisible to it. `Server:bootServerApp` emits the literal
      * source `bootServer({...})` (SystemOverwrites/overwrites.sc:1-5).
      */
     installGlobals(): void {
-        (window as unknown as Record<string, unknown>).bootServer =
-            (options: any) => {
-                // the reference init.js defers by 100ms and it is worth keeping: this runs
-                // inside a sclang -> main-thread hop and wants that task to finish first
-                setTimeout(() => void this.boot(options), 100);
-            };
+        (window as unknown as Record<string, unknown>).bootServer = (
+            options: any,
+        ) => {
+            // the reference init.js defers by 100ms and it is worth keeping: this runs
+            // inside a sclang -> main-thread hop and wants that task to finish first
+            setTimeout(() => void this.boot(options), 100);
+        };
     }
 
-    dispose(): void { this.postEmitter.dispose(); }
+    dispose(): void {
+        this.postEmitter.dispose();
+    }
 }

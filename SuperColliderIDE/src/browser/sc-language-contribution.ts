@@ -1,6 +1,9 @@
 import { injectable } from "@theia/core/shared/inversify";
-import * as monaco from '@theia/monaco-editor-core';
-import { LanguageGrammarDefinitionContribution, TextmateRegistry } from '@theia/monaco/lib/browser/textmate';
+import * as monaco from "@theia/monaco-editor-core";
+import {
+    LanguageGrammarDefinitionContribution,
+    TextmateRegistry,
+} from "@theia/monaco/lib/browser/textmate";
 import * as grammar from "./data/supercollider.tmLanguage.json";
 
 export const SC_LANGUAGE_ID = "sclang";
@@ -20,20 +23,24 @@ export class ScLanguageContribution implements LanguageGrammarDefinitionContribu
         });
 
         monaco.languages.setLanguageConfiguration(SC_LANGUAGE_ID, {
-            comments: {lineComment: "//", blockComment: ["/*", "*/"]},
-            brackets: [["{", "}"], ["[", "]"], ["(", ")"]],
+            comments: { lineComment: "//", blockComment: ["/*", "*/"] },
+            brackets: [
+                ["{", "}"],
+                ["[", "]"],
+                ["(", ")"],
+            ],
             autoClosingPairs: [
-                { open: "{", close: "}"},
-                { open: "[", close: "]"},
-                { open: "(", close: ")"},
-                { open: "\"", close: "\"", notIn: ['string', 'comment']},
+                { open: "{", close: "}" },
+                { open: "[", close: "]" },
+                { open: "(", close: ")" },
+                { open: '"', close: '"', notIn: ["string", "comment"] },
             ],
             surroundingPairs: [
-                { open: "{", close: "}"},
-                { open: "[", close: "]"},
-                { open: "(", close: ")"},
-                { open: "\"", close: "\""},
-            ]
+                { open: "{", close: "}" },
+                { open: "[", close: "]" },
+                { open: "(", close: ")" },
+                { open: '"', close: '"' },
+            ],
         });
 
         registry.registerTextmateGrammarScope(SC_SCOPE, {
@@ -41,9 +48,9 @@ export class ScLanguageContribution implements LanguageGrammarDefinitionContribu
                 return {
                     format: "json",
                     content: grammar as unknown as object,
-                }
-            }
-        })
+                };
+            },
+        });
 
         registry.mapLanguageIdToTextmateGrammar(SC_LANGUAGE_ID, SC_SCOPE);
     }

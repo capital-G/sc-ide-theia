@@ -1,5 +1,12 @@
 import { Emitter, Event } from "@theia/core";
-import { InterpreterState, LangMessage, QuerySelector, ScArg, ScMethodRef, ScMethodSide } from "./protocol";
+import {
+    InterpreterState,
+    LangMessage,
+    QuerySelector,
+    ScArg,
+    ScMethodRef,
+    ScMethodSide,
+} from "./protocol";
 import { SC_BOOTSTRAP } from "./sc-bootstrap";
 
 export const SC_RESOLVE_TIMEOUT_MS = 500;
@@ -15,7 +22,7 @@ export interface SclangRuntime {
 
     /**
      * Runs code in sclang.
-     * 
+     *
      * @param code Code to run
      * @param silent if true, this will not yield to stdout.
      * In node/local it uses an ascii sign to indicate a silent evaluation.
@@ -36,15 +43,18 @@ export interface SclangRuntime {
 }
 
 export class ScServiceCore {
-    protected state: InterpreterState = { kind: 'stopped'};
+    protected state: InterpreterState = { kind: "stopped" };
 
     /** used as a counter to call into language, the reply is marked w/ this id */
     protected nextId = 0;
     /** dict of all outstanding promises for querying the language */
-    protected readonly pending = new Map<number, {
-        resolve(v: string[] | undefined): void;
-        timer: ReturnType<typeof setTimeout>;
-    }>();
+    protected readonly pending = new Map<
+        number,
+        {
+            resolve(v: string[] | undefined): void;
+            timer: ReturnType<typeof setTimeout>;
+        }
+    >();
 
     protected readonly postEmitter = new Emitter<string>();
     readonly onPost: Event<string> = this.postEmitter.event;
@@ -56,9 +66,9 @@ export class ScServiceCore {
     readonly onLangMessage: Event<LangMessage> = this.langEmitter.event;
 
     constructor(protected readonly runtime: SclangRuntime) {
-        this.runtime.onPost(chunk => this.postEmitter.fire(chunk));
-        this.runtime.onReply(reply => this.onReply(reply));
-        this.runtime.onExit(code => this.onExit(code));
+        this.runtime.onPost((chunk) => this.postEmitter.fire(chunk));
+        this.runtime.onReply((reply) => this.onReply(reply));
+        this.runtime.onExit((code) => this.onExit(code));
         this.runtime.onCompiled(() => this.markCompiled());
     }
 
@@ -72,11 +82,13 @@ export class ScServiceCore {
     }
 
     async start(): Promise<void> {
-        if(this.state.kind !== "stopped") { return; }
+        if (this.state.kind !== "stopped") {
+            return;
+        }
         await this.runtime.start();
         this.setState({
             kind: "starting",
-            pid: this.runtime.pid
+            pid: this.runtime.pid,
         });
     }
 
@@ -86,9 +98,9 @@ export class ScServiceCore {
 
     async restart(): Promise<void> {
         if (this.state.kind !== "stopped") {
-            await new Promise<void>(resolve => {
+            await new Promise<void>((resolve) => {
                 // we kill async, so resolve via state event
-                const sub = this.onStateChanged(state => {
+                const sub = this.onStateChanged((state) => {
                     if (state.kind === "stopped") {
                         sub.dispose();
                         resolve();
@@ -106,8 +118,8 @@ export class ScServiceCore {
     }
 
     async recompile(): Promise<void> {
-        if(this.state.kind === "running") {
-            this.setState({...this.state, compiled: false});
+        if (this.state.kind === "running") {
+            this.setState({ ...this.state, compiled: false });
         }
         this.runtime.recompile();
     }
@@ -117,29 +129,39 @@ export class ScServiceCore {
     }
 
     protected markCompiled(): void {
-        if(this.state.kind === "stopped") { return; }
-        if(this.state.kind === "running" && this.state.compiled) { return; }
-        const channelUp = this.state.kind === "running" ? this.state.channelUp : false;
+        if (this.state.kind === "stopped") {
+            return;
+        }
+        if (this.state.kind === "running" && this.state.compiled) {
+            return;
+        }
+        const channelUp =
+            this.state.kind === "running" ? this.state.channelUp : false;
         this.setState({
             kind: "running",
             pid: this.runtime.pid,
             compiled: true,
             channelUp: channelUp,
         });
-        this.runtime.evaluate(`${this.runtime.bootstrapPrologue}${SC_BOOTSTRAP}`, true);
+        this.runtime.evaluate(
+            `${this.runtime.bootstrapPrologue}${SC_BOOTSTRAP}`,
+            true,
+        );
     }
 
     protected onReply(reply: ScReply) {
-        if(this.state.kind === "running" && !this.state.channelUp) {
+        if (this.state.kind === "running" && !this.state.channelUp) {
             this.setState({ ...this.state, channelUp: true });
         }
 
         if (reply.id === 0) {
             const [selector, json] = reply.rows;
-            if(!selector) { return; }
+            if (!selector) {
+                return;
+            }
             let data: unknown = json;
             try {
-                if(json !== undefined) {
+                if (json !== undefined) {
                     data = JSON.parse(json);
                 }
             } catch {
@@ -151,7 +173,9 @@ export class ScServiceCore {
 
         const p = this.pending.get(reply.id);
         // we may already timed out
-        if(!p) { return; }
+        if (!p) {
+            return;
+        }
         this.pending.delete(reply.id);
         clearTimeout(p.timer);
         p.resolve(reply.rows);
@@ -159,52 +183,73 @@ export class ScServiceCore {
 
     protected onExit(code: number | null): void {
         // cancel all promises
-        for (const {resolve, timer} of this.pending.values()) {
+        for (const { resolve, timer } of this.pending.values()) {
             clearTimeout(timer);
             resolve(undefined);
         }
         this.pending.clear();
         this.setState({
             kind: "stopped",
-            exitCode: code ?? undefined
+            exitCode: code ?? undefined,
         });
     }
 
     // protect such that the query payload does not terminate a string
     private static readonly SAFE_ARG = /^[A-Za-z0-9_]*$/;
 
-    async query(selector: QuerySelector, ...args: string[]): Promise<string[] | undefined> {
-        if(this.state.kind !== "running" || !this.state.compiled) { return undefined; }
-        if(!args.every(a => ScServiceCore.SAFE_ARG.test(a))) {return undefined; }
+    async query(
+        selector: QuerySelector,
+        ...args: string[]
+    ): Promise<string[] | undefined> {
+        if (this.state.kind !== "running" || !this.state.compiled) {
+            return undefined;
+        }
+        if (!args.every((a) => ScServiceCore.SAFE_ARG.test(a))) {
+            return undefined;
+        }
 
         const id = ++this.nextId;
-        return new Promise<string[] | undefined>(resolve => {
+        return new Promise<string[] | undefined>((resolve) => {
             const timer = setTimeout(() => {
                 this.pending.delete(id);
                 resolve(undefined);
             }, SC_RESOLVE_TIMEOUT_MS);
-            this.pending.set(id, {resolve, timer});
-            this.runtime.evaluate(`~theiaIDE.(${id}, \\${selector}, "${args.join('", "')}")`, true);
-        })
+            this.pending.set(id, { resolve, timer });
+            this.runtime.evaluate(
+                `~theiaIDE.(${id}, \\${selector}, "${args.join('", "')}")`,
+                true,
+            );
+        });
     }
 
     async queryClass(text: string): Promise<string[]> {
-        return await this.query(QuerySelector.CLASS_LOOKUP, text) ?? [];
+        return (await this.query(QuerySelector.CLASS_LOOKUP, text)) ?? [];
     }
 
-    async queryMethod(prefix: string, receiverClass?: string, side?: ScMethodSide): Promise<ScMethodRef[]> {
-        return decodeMethodRows(await this.query(
-            QuerySelector.METHOD_LOOKUP, prefix, receiverClass ?? "", side ?? ""
-        ));
+    async queryMethod(
+        prefix: string,
+        receiverClass?: string,
+        side?: ScMethodSide,
+    ): Promise<ScMethodRef[]> {
+        return decodeMethodRows(
+            await this.query(
+                QuerySelector.METHOD_LOOKUP,
+                prefix,
+                receiverClass ?? "",
+                side ?? "",
+            ),
+        );
     }
 
     async queryArgs(ref: ScMethodRef): Promise<ScArg[] | undefined> {
-        return decodeArgRows(await this.query(
-            QuerySelector.ARGS_LOOKUP,
-            ref.name,
-            ref.ownerClass,
-            ref.isClassMethod ? "class" : "instance"
-        ));
+        return decodeArgRows(
+            await this.query(
+                QuerySelector.ARGS_LOOKUP,
+                ref.name,
+                ref.ownerClass,
+                ref.isClassMethod ? "class" : "instance",
+            ),
+        );
     }
 
     async queryEnvClass(name: string): Promise<string | undefined> {
@@ -221,21 +266,27 @@ export class ScServiceCore {
 
 // maps to name\townerClass\tc/i
 function decodeMethodRows(rows: string[] | undefined): ScMethodRef[] {
-    return rows?.flatMap(row => {
-        const [name, ownerClass, kind] = row.split("\t");
-        if(!name || !ownerClass || !kind) { return []; }
-        return {
-            name,
-            ownerClass,
-            isClassMethod: kind === "c"
-        }
-    }) ?? [];
+    return (
+        rows?.flatMap((row) => {
+            const [name, ownerClass, kind] = row.split("\t");
+            if (!name || !ownerClass || !kind) {
+                return [];
+            }
+            return {
+                name,
+                ownerClass,
+                isClassMethod: kind === "c",
+            };
+        }) ?? []
+    );
 }
 
 // maps to `name` or `name=default`
 export function decodeArgRows(rows: string[] | undefined): ScArg[] | undefined {
-    return rows?.map(row => {
+    return rows?.map((row) => {
         const eq = row.indexOf("=");
-        return eq < 0 ? { name: row } : { name: row.slice(0, eq), default: row.slice(eq+1)}
+        return eq < 0
+            ? { name: row }
+            : { name: row.slice(0, eq), default: row.slice(eq + 1) };
     });
 }

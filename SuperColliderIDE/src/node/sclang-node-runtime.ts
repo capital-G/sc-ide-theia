@@ -10,8 +10,7 @@ import OSC from "osc-js";
 const SCLANG_PATH_CANDIDATES = [
     "/Applications/SuperCollider-3.14.1.app/Contents/MacOS/sclang",
     "/Applications/SuperCollider.app/Contents/MacOS/sclang",
-]
-
+];
 
 export class SclangNodeRuntime implements SclangRuntime {
     protected process: SclangProcess | undefined;
@@ -33,7 +32,9 @@ export class SclangNodeRuntime implements SclangRuntime {
     protected onChunk(chunk: string): void {
         this.postEmitter.fire(chunk);
         // @todo remove this check for every chunk...
-        if(chunk.includes("compile done\n")) { this.compiledEmitter.fire(); }
+        if (chunk.includes("compile done\n")) {
+            this.compiledEmitter.fire();
+        }
     }
 
     get pid(): number | undefined {
@@ -41,40 +42,43 @@ export class SclangNodeRuntime implements SclangRuntime {
     }
 
     get bootstrapPrologue(): string {
-        return `~theiaLimit = ${SC_QUERY_LIMIT};`
-            + `~theiaAddr = NetAddr("127.0.0.1", ${this.port});`
-            + `~theiaEmit = {|id, rows| ~theiaAddr.sendMsg("/complete", id, *rows)};`;
+        return (
+            `~theiaLimit = ${SC_QUERY_LIMIT};` +
+            `~theiaAddr = NetAddr("127.0.0.1", ${this.port});` +
+            `~theiaEmit = {|id, rows| ~theiaAddr.sendMsg("/complete", id, *rows)};`
+        );
     }
 
     async start(): Promise<void> {
         const sclangPath = await this.resolveSclangPath();
-        if(!sclangPath) {
+        if (!sclangPath) {
             this.postEmitter?.fire("Could not find sclang binary!\n");
             this.exitEmitter.fire(null);
             return;
         }
         // the socket is allowed to outlive since we only run a single interpreter
-        if(!this.udp) {
-            this.udp = new SclangUdp(msg => this.onOsc(msg));
+        if (!this.udp) {
+            this.udp = new SclangUdp((msg) => this.onOsc(msg));
             this.port = await this.udp.start();
         }
 
         this.process = new SclangProcess(
             {
                 sclangPath: sclangPath,
-                ideName: "theia"
+                ideName: "theia",
             },
-            chunk => this.onChunk(chunk),
-            code => {
+            (chunk) => this.onChunk(chunk),
+            (code) => {
                 this.process = undefined;
-                this.exitEmitter.fire(code)
-            }
+                this.exitEmitter.fire(code);
+            },
         );
         this.process.start();
     }
 
-
-    kill(): void { this.process?.kill(); }
+    kill(): void {
+        this.process?.kill();
+    }
 
     evaluate(code: string, silent: boolean): void {
         this.process?.write(code, silent ? SILENT : EVALUATE);
@@ -86,16 +90,20 @@ export class SclangNodeRuntime implements SclangRuntime {
 
     protected onOsc(msg: OSC.Message): void {
         const [id, ...args] = msg.args;
-        if (typeof id !== "number") { return; }
+        if (typeof id !== "number") {
+            return;
+        }
         this.replyEmitter.fire({
             id,
-            rows: args.filter((a): a is string => typeof a === "string")
+            rows: args.filter((a): a is string => typeof a === "string"),
         });
     }
 
     async resolveSclangPath(): Promise<string | undefined> {
         const envPath = process.env.SC_LANG_PATH;
-        if (envPath) { return envPath; }
+        if (envPath) {
+            return envPath;
+        }
         for (const pathCandidate of SCLANG_PATH_CANDIDATES) {
             try {
                 await access(pathCandidate, constants.F_OK);

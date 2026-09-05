@@ -4,15 +4,16 @@ export const SC_SERVICE_PATH = "/services/supercollider";
 export const ScService = Symbol("ScService");
 export const ScClient = Symbol("ScClient");
 
-export type InterpreterState = 
+export type InterpreterState =
     | { kind: "stopped"; exitCode?: number }
-    | { kind: "starting", pid?: number }
-    | { kind: "running", pid?: number, compiled: boolean, channelUp: boolean};
+    | { kind: "starting"; pid?: number }
+    | { kind: "running"; pid?: number; compiled: boolean; channelUp: boolean };
 
 // capture by word
 export const SC_CLASS_REGEX = /^[A-Z][A-Za-z0-9_]*$/;
 export const SC_CLASS_TAIL_REGEX = /[A-Z][A-Za-z0-9_]*$/; // use for line prefix scanning
-export const SC_STATIC_METHOD_REGEX = /([A-Z][A-Za-z0-9_]*)\.([a-z][A-Za-z0-9_]*)$/;
+export const SC_STATIC_METHOD_REGEX =
+    /([A-Z][A-Za-z0-9_]*)\.([a-z][A-Za-z0-9_]*)$/;
 export const SC_METHOD_REGEX = /(~?[a-z][A-Za-z0-9_]*)\.([a-z][A-Za-z0-9_]*)$/;
 export const SC_ENV_REGEX = /~[A-Za-z][A-Za-z0-9_]*$/;
 
@@ -25,13 +26,19 @@ export const SC_FUNCTION = /^\{[\s\S]*\}$/;
 export const SC_SYMBOL = /^\\[A-Za-z0-9_]+$|^'[\s\S]*'$/;
 export const SC_STRING = /^"[\s\S]*"$/;
 
-export interface ScArg { name: string; default?: string }
+export interface ScArg {
+    name: string;
+    default?: string;
+}
 /** reference of the actual implementation of a method, i.e. its class handle */
-export interface ScMethodRef { name: string; ownerClass: string; isClassMethod: boolean }
+export interface ScMethodRef {
+    name: string;
+    ownerClass: string;
+    isClassMethod: boolean;
+}
 /** Lazily obtained from the language */
-export type ScMethodSide = 'class' | 'instance';
+export type ScMethodSide = "class" | "instance";
 export const SC_QUERY_LIMIT = 50;
-
 
 export enum QuerySelector {
     // ~theiaIde.("class", class);
@@ -48,7 +55,10 @@ export enum QuerySelector {
  * One decoded frame from sclang.
  * Data is parsed JSON.
  */
-export interface LangMessage {selector: string; data: unknown}
+export interface LangMessage {
+    selector: string;
+    data: unknown;
+}
 
 /**
  * Defines the service between backend and frontend.
@@ -66,7 +76,11 @@ export interface ScService extends RpcServer<ScClient> {
     resolveSclangPath(): Promise<string | undefined>;
 
     queryClass(text: string): Promise<string[]>;
-    queryMethod(text: string, receiver?: string, side?: ScMethodSide): Promise<ScMethodRef[]>;
+    queryMethod(
+        text: string,
+        receiver?: string,
+        side?: ScMethodSide,
+    ): Promise<ScMethodRef[]>;
     queryArgs(ref: ScMethodRef): Promise<ScArg[] | undefined>;
     queryEnvClass(text: string): Promise<string | undefined>;
 }

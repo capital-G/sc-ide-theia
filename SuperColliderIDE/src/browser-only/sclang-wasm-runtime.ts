@@ -15,7 +15,9 @@ interface SclangModule {
     onOsc: (msg: Uint8Array) => void;
 }
 
-type SclangFactory = (cfg: { locateFile(path: string): string }) => Promise<SclangModule>;
+type SclangFactory = (cfg: {
+    locateFile(path: string): string;
+}) => Promise<SclangModule>;
 
 export class SclangWasmRuntime implements SclangRuntime {
     protected module: SclangModule | undefined;
@@ -35,27 +37,30 @@ export class SclangWasmRuntime implements SclangRuntime {
     constructor(
         protected readonly onLangOsc: (bytes: Uint8Array) => void,
         protected readonly baseUrl: string = SC_WASM_BASE_URL,
-    ) { }
+    ) {}
 
     async start(): Promise<void> {
-        if(this.module) { return; }
+        if (this.module) {
+            return;
+        }
 
         const url = `${this.baseUrl}/sclang.js`;
         const { default: factory } = await importGlue<SclangFactory>(url);
 
         const module = await factory({
-            locateFile: path => `${this.baseUrl}/${path}`
+            locateFile: (path) => `${this.baseUrl}/${path}`,
         });
 
-        module.printCallback = line => this.onLine(line);
-        module.printErrCallback = line => this.onLine(line);
+        module.printCallback = (line) => this.onLine(line);
+        module.printErrCallback = (line) => this.onLine(line);
 
-        module.onIdeReply = (id, payload) => this.replyEmitter.fire({
-            id,
-            rows: payload.split("\n")
-        });
+        module.onIdeReply = (id, payload) =>
+            this.replyEmitter.fire({
+                id,
+                rows: payload.split("\n"),
+            });
 
-        module.onOsc = bytes => this.onLangOsc(new Uint8Array(bytes));
+        module.onOsc = (bytes) => this.onLangOsc(new Uint8Array(bytes));
         this.module = module;
 
         module.bootInterpreter();
@@ -63,7 +68,7 @@ export class SclangWasmRuntime implements SclangRuntime {
 
     protected onLine(line: string): void {
         this.postEmitter.fire(`${line}\n`);
-        if(line.includes("compile done")) {
+        if (line.includes("compile done")) {
             this.compiledEmitter.fire();
         }
     }
@@ -73,8 +78,10 @@ export class SclangWasmRuntime implements SclangRuntime {
     }
 
     evaluate(code: string, silent: boolean): void {
-        if(!this.module) { return; }
-        if(silent) {
+        if (!this.module) {
+            return;
+        }
+        if (silent) {
             this.module.runCodeSilent(code);
         } else {
             this.module.runCode(code);

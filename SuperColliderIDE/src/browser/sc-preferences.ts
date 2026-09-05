@@ -10,6 +10,10 @@ export class ScPreferenceContribution implements PreferenceContribution {
     async initSchema(service: PreferenceSchemaService): Promise<void> {
         service.registerOverride("editor.insertSpaces", SC_LANGUAGE_ID, false);
         service.registerOverride("editor.tabSize", SC_LANGUAGE_ID, 4);
-        service.registerOverride("editor.detectIndentation", SC_LANGUAGE_ID, false);
+        service.registerOverride(
+            "editor.detectIndentation",
+            SC_LANGUAGE_ID,
+            false,
+        );
     }
 }

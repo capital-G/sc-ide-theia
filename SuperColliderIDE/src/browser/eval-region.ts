@@ -16,19 +16,25 @@ export function evalRangeAt(text: string, offset: number): EvalRange {
 
     for (let i = 0; i < text.length; i++) {
         const ch = text[i];
-        if (ch === '(') {
-            if(depth === 0) { groupStart = i; }
+        if (ch === "(") {
+            if (depth === 0) {
+                groupStart = i;
+            }
             depth++;
-        } else if (ch === ')') {
-            if (depth > 0) { depth--;}
-            if(depth ==0 && groupStart >= 0) {
-                if(groupStart <= offset && offset <= i+1) {
-                    const column = groupStart - (text.lastIndexOf('\n', groupStart - 1) + 1);
-                    if(column === 0) {
+        } else if (ch === ")") {
+            if (depth > 0) {
+                depth--;
+            }
+            if (depth == 0 && groupStart >= 0) {
+                if (groupStart <= offset && offset <= i + 1) {
+                    const column =
+                        groupStart -
+                        (text.lastIndexOf("\n", groupStart - 1) + 1);
+                    if (column === 0) {
                         return {
-                            start: groupStart+1,
+                            start: groupStart + 1,
                             end: i,
-                            kind: 'region',
+                            kind: "region",
                         };
                     }
                     break;
@@ -39,8 +45,12 @@ export function evalRangeAt(text: string, offset: number): EvalRange {
     }
 
     let start = offset;
-    while(start >0 && text[start-1] !== '\n') { start--; }
+    while (start > 0 && text[start - 1] !== "\n") {
+        start--;
+    }
     let end = offset;
-    while (end < text.length && text[end] !== '\n') { end++; }
-    return {start, end, kind: 'line'};
+    while (end < text.length && text[end] !== "\n") {
+        end++;
+    }
+    return { start, end, kind: "line" };
 }

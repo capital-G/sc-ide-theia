@@ -1,7 +1,6 @@
 import { Socket, createSocket } from "dgram";
 import OSC from "osc-js";
 
-
 /** allows us to receive osc messages from the language client */
 export class SclangUdp {
     protected socket: Socket | undefined;
@@ -11,12 +10,16 @@ export class SclangUdp {
     async start(): Promise<number> {
         const socket = createSocket("udp4");
         this.socket = socket;
-        socket.on("message", buf => {
-            const message = new OSC.Message('');
-            message.unpack(new DataView(buf.buffer, buf.byteOffset, buf.byteLength));
+        socket.on("message", (buf) => {
+            const message = new OSC.Message("");
+            message.unpack(
+                new DataView(buf.buffer, buf.byteOffset, buf.byteLength),
+            );
             this.onMessage(message);
         });
-        await new Promise<void>(resolve => socket.bind(0, "127.0.0.1", resolve));
+        await new Promise<void>((resolve) =>
+            socket.bind(0, "127.0.0.1", resolve),
+        );
         return socket.address().port;
     }
 
