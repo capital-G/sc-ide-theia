@@ -22,6 +22,8 @@ import { ScLanguageContribution } from "./sc-language-contribution";
 import { ScPreferenceContribution } from "./sc-preferences";
 import { ScDefaultLanguage } from "./sc-default-language";
 import { ScAutocomplete } from "./sc-autocomplete";
+import { ScStatusBarContribution } from "./sc-statusbar";
+import { ScServerStatus } from "./sc-server-status";
 
 export default new ContainerModule((bind) => {
     bind(ScClientImpl).toSelf().inSingletonScope();
@@ -39,8 +41,12 @@ export default new ContainerModule((bind) => {
     bind(ScDefaultLanguage).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(ScDefaultLanguage);
     bind(ScAutocomplete).toSelf().inSingletonScope();
+    bind(ScStatusBarContribution).toSelf().inSingletonScope();
+    bind(ScServerStatus).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(ScServerStatus);
     bind(FrontendApplicationContribution).toService(ScAutocomplete);
     bind(FrontendApplicationContribution).toService(ScCommandContribution);
+    bind(FrontendApplicationContribution).toService(ScStatusBarContribution);
 
     bind(ScService)
         .toDynamicValue((ctx) => {

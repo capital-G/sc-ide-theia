@@ -1,5 +1,9 @@
 import { Emitter, Event } from "@theia/core";
-import { SclangRuntime, ScReply } from "../common/sc-service-core";
+import {
+    SclangRuntime,
+    ScReply,
+    ScTheiaMessage,
+} from "../common/sc-service-core";
 import { importGlue } from "./tools";
 
 export const SC_WASM_BASE_URL = "/sc";
@@ -27,6 +31,10 @@ export class SclangWasmRuntime implements SclangRuntime {
 
     protected readonly replyEmitter = new Emitter<ScReply>();
     readonly onReply: Event<ScReply> = this.replyEmitter.event;
+
+    protected readonly langMessageEmitter = new Emitter<ScTheiaMessage>();
+    readonly onLangMessage: Event<ScTheiaMessage> =
+        this.langMessageEmitter.event;
 
     protected readonly exitEmitter = new Emitter<number | null>();
     readonly onExit: Event<number | null> = this.exitEmitter.event;
@@ -93,7 +101,7 @@ export class SclangWasmRuntime implements SclangRuntime {
     }
 
     get bootstrapPrologue(): string {
-        return `~theiaEmit = {|id, rows| JS.ideReply(id, rows.join("\n"))};\n`;
+        return `~theiaEmit = {|selector ...rows| JS.ideReply(selector, rows.join("\n"))};\n`;
     }
 
     readonly pid = undefined;
