@@ -2,8 +2,11 @@ import { RpcServer } from "@theia/core";
 import { ScTheiaMessage } from "./sc-service-core";
 
 export const SC_SERVICE_PATH = "/services/supercollider";
+export const SC_SERVER_WATCHER_PATH = "/services/scserverwatcher";
 export const ScService = Symbol("ScService");
 export const ScClient = Symbol("ScClient");
+export const ScServerWatcherClient = Symbol("ScServerWatcher");
+export const ScServerWatcherService = Symbol("ScServerWatcherService");
 
 export type InterpreterState =
     | { kind: "stopped"; exitCode?: number }
@@ -84,4 +87,31 @@ export interface ScClient {
     onPost(chunk: string): void;
     onInterpreterStateChanged(state: InterpreterState): void;
     onLangMessage(msg: ScTheiaMessage): void;
+}
+
+export interface ScServerCpuInfo {
+    peak: number;
+    average: number;
+}
+
+export interface ScServerSynthInfo {
+    numSynths: number;
+    numGroups: number;
+    numUGens: number;
+    numSynthDefs: number;
+}
+
+export interface ScServerInfo {
+    cpu: ScServerCpuInfo;
+    synths: ScServerSynthInfo;
+}
+
+/** lives on frontend, backend calls it to push data */
+export interface ScServerWatcherClient {
+    onServerInfo(info: ScServerInfo): void;
+}
+
+/** lives on backend, frontend calls it */
+export interface ScServerWatcherService extends RpcServer<ScServerWatcherClient> {
+    startWatching(host: string, port: number): void;
 }

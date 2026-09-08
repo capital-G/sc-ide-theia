@@ -11,12 +11,14 @@ import {
     ScServerStatus,
     ServerBootStatus,
     ServerCpuInfo,
+    ServerSynthInfo,
 } from "./sc-server-status";
 import { InterpreterState } from "../common/protocol";
 import { ScClientImpl } from "./sc-client-impl";
 
 export const SC_SERVER_STATE = "sc-server-state";
 export const SC_SERVER_CPU = "sc-server-cpu";
+export const SC_SERVER_SYNTH = "sc-server-synth";
 
 export const SC_LANG_STATE = "sc-sclang-state";
 
@@ -38,12 +40,21 @@ export class ScStatusBarContribution implements FrontendApplicationContribution 
 
         this.renderServerStatus({ status: "offline" });
         this.renderServerCpu({ average: 0.0, peak: 0.0 });
+        this.renderServerSynths({
+            numGroups: 0,
+            numSynthDefs: 0,
+            numSynths: 0,
+            numUGens: 0,
+        });
         this.renderLangStatus();
         this.serverStatus.onServerStatusChanged((state) =>
             this.renderServerStatus(state),
         );
         this.serverStatus.onCpuChanged((cpuInfo) =>
             this.renderServerCpu(cpuInfo),
+        );
+        this.serverStatus.onServerInfoChanged((synthInfo) =>
+            this.renderServerSynths(synthInfo),
         );
     }
 
@@ -76,10 +87,26 @@ export class ScStatusBarContribution implements FrontendApplicationContribution 
     }
 
     protected renderServerCpu(cpuInfo: ServerCpuInfo) {
+        const text =
+            this.serverStatus.state.status === "offline"
+                ? ""
+                : `CPU: ${cpuInfo.average.toFixed(2).padStart(5, "0")} avg, ${cpuInfo.peak.toFixed(2).padStart(5, "0")} peak`;
         this.statusBar.setElement(SC_SERVER_CPU, {
-            text: `${cpuInfo.average} ${cpuInfo.peak}`,
+            text,
             alignment: StatusBarAlignment.LEFT,
             priority: 100,
+        });
+    }
+
+    protected renderServerSynths(synthInfo: ServerSynthInfo) {
+        const text =
+            this.serverStatus.state.status === "offline"
+                ? ""
+                : `${synthInfo.numUGens.toFixed(0).padStart(5, " ")} UGens ${synthInfo.numSynths.toFixed(0).padStart(5, " ")} synths ${synthInfo.numGroups.toFixed(0).padStart(5, " ")} groups ${synthInfo.numSynthDefs.toFixed(0).padStart(5, " ")} SynthDefs`;
+        this.statusBar.setElement(SC_SERVER_SYNTH, {
+            text,
+            alignment: StatusBarAlignment.LEFT,
+            priority: 50,
         });
     }
 

@@ -7,7 +7,14 @@ import {
     PreferenceContribution,
 } from "@theia/core/lib/common";
 import { ContainerModule } from "@theia/core/shared/inversify";
-import { SC_SERVICE_PATH, ScClient, ScService } from "../common/protocol";
+import {
+    SC_SERVER_WATCHER_PATH,
+    SC_SERVICE_PATH,
+    ScClient,
+    ScServerWatcherClient,
+    ScServerWatcherService,
+    ScService,
+} from "../common/protocol";
 import {
     FrontendApplicationContribution,
     KeybindingContribution,
@@ -24,10 +31,13 @@ import { ScDefaultLanguage } from "./sc-default-language";
 import { ScAutocomplete } from "./sc-autocomplete";
 import { ScStatusBarContribution } from "./sc-statusbar";
 import { ScServerStatus } from "./sc-server-status";
+import { ScServerWatcherClientImpl } from "./sc-server-watcher-client-impl";
 
 export default new ContainerModule((bind) => {
     bind(ScClientImpl).toSelf().inSingletonScope();
     bind(ScClient).toService(ScClientImpl);
+    bind(ScServerWatcherClientImpl).toSelf().inSingletonScope();
+    bind(ScServerWatcherClient).toService(ScServerWatcherClientImpl);
     bind(ScCommandContribution).toSelf().inSingletonScope();
     bind(CommandContribution).to(ScCommandContribution);
     bind(KeybindingContribution).toService(ScCommandContribution);
@@ -56,6 +66,18 @@ export default new ContainerModule((bind) => {
             return provider.createProxy<ScService>(
                 SC_SERVICE_PATH,
                 ctx.container.get(ScClientImpl),
+            );
+        })
+        .inSingletonScope();
+
+    bind(ScServerWatcherService)
+        .toDynamicValue((ctx) => {
+            const provider = ctx.container.get<ServiceConnectionProvider>(
+                RemoteConnectionProvider,
+            );
+            return provider.createProxy<ScServerWatcherService>(
+                SC_SERVER_WATCHER_PATH,
+                ctx.container.get(ScServerWatcherClient),
             );
         })
         .inSingletonScope();

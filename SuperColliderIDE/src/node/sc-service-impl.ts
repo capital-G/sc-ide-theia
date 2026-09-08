@@ -12,7 +12,6 @@ import { SclangNodeRuntime } from "./sclang-node-runtime";
 import { ScServiceCore } from "../common/sc-service-core";
 import { MaybePromise } from "@theia/core";
 import { Application } from "express";
-import { ScServerStatus } from "../browser/sc-server-status";
 
 /**
  * Acts as an adapter between the SclangNodeRuntime and ScService
@@ -25,15 +24,12 @@ export class ScServiceImpl
     protected readonly runtime = new SclangNodeRuntime();
     protected readonly core = new ScServiceCore(this.runtime);
 
-    readonly serverStatus: ScServerStatus;
-
     constructor() {
         this.core.onPost((chunk) => this.client?.onPost(chunk));
         this.core.onStateChanged((state) =>
             this.client?.onInterpreterStateChanged(state),
         );
         this.core.onLangMessage((msg) => this.client?.onLangMessage(msg));
-        this.serverStatus = this.core.serverStatus;
     }
 
     setClient(client: ScClient | undefined): void {

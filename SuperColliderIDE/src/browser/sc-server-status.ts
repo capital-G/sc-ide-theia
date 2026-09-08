@@ -1,9 +1,13 @@
 import { Emitter, Event } from "@theia/core";
 import { ScTheiaMessage } from "../common/sc-service-core";
 import { inject, injectable } from "@theia/core/shared/inversify";
-import { SC_SERVER_INFO_ADDRESS } from "../common/protocol";
+import {
+    SC_SERVER_INFO_ADDRESS,
+    ScServerWatcherService,
+} from "../common/protocol";
 import { ScClientImpl } from "./sc-client-impl";
 import { FrontendApplicationContribution } from "@theia/core/lib/browser";
+import { ScServerWatcherClientImpl } from "./sc-server-watcher-client-impl";
 
 export interface ServerCpuInfo {
     peak: number;
@@ -26,24 +30,26 @@ export type ServerBootStatus =
 @injectable()
 export class ScServerStatus implements FrontendApplicationContribution {
     @inject(ScClientImpl) protected readonly client!: ScClientImpl;
+    @inject(ScServerWatcherService)
+    protected readonly serverWatcher!: ScServerWatcherService;
+    @inject(ScServerWatcherClientImpl)
+    protected readonly watcherClient!: ScServerWatcherClientImpl;
 
     state: ServerBootStatus = { status: "offline" };
-    cpu: ServerCpuInfo = {
-        peak: 0.0,
-        average: 0.0,
-    };
-    info: ServerSynthInfo = {
-        numSynths: 0,
-        numGroups: 0,
-        numUGens: 0,
-        numSynthDefs: 0,
-    };
 
     onStart(): void {
         this.client.onLangMessageEvent((msg) => {
             if (msg.selector === SC_SERVER_INFO_ADDRESS) {
                 this.parseMessage(msg);
             }
+        });
+
+        this.watcherClient.onServerInfoEvent((info) => {
+            if (this.state.status === "booting") {
+                this.setState({ ...this.state, status: "online" });
+            }
+            this.synthInfoEmitter.fire(info.synths);
+            this.cpuEmitter.fire(info.cpu);
         });
     }
 
@@ -75,6 +81,7 @@ export class ScServerStatus implements FrontendApplicationContribution {
                         hostname,
                         port,
                     };
+                    this.serverWatcher.startWatching(hostname, port);
                 } else if (unresponsive) {
                     this.state.status = "unresponsive";
                 } else if (running) {
@@ -88,19 +95,11 @@ export class ScServerStatus implements FrontendApplicationContribution {
                 }
                 this.statusEmitter.fire(this.state);
                 break;
-            case "cpu":
-                [this.cpu.average, this.cpu.peak] = args.map((x) => Number(x));
-                this.cpuEmitter.fire(this.cpu);
-                break;
-            case "synth":
-                [
-                    this.info.numSynths,
-                    this.info.numGroups,
-                    this.info.numSynthDefs,
-                    this.info.numUGens,
-                ] = args.map((x) => Number(x));
-                this.synthInfoEmitter.fire(this.info);
-                break;
         }
+    }
+
+    protected setState(state: ServerBootStatus): void {
+        this.state = state;
+        this.statusEmitter.fire(state);
     }
 }

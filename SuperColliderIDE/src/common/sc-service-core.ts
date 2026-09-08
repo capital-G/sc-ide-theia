@@ -2,13 +2,11 @@ import { Emitter, Event } from "@theia/core";
 import {
     InterpreterState,
     QuerySelector,
-    SC_SERVER_INFO_ADDRESS,
     ScArg,
     ScMethodRef,
     ScMethodSide,
 } from "./protocol";
 import { SC_BOOTSTRAP } from "./sc-bootstrap";
-import { ScServerStatus } from "../browser/sc-server-status";
 
 export const SC_RESOLVE_TIMEOUT_MS = 500;
 
@@ -53,7 +51,6 @@ export interface SclangRuntime {
 
 export class ScServiceCore {
     protected state: InterpreterState = { kind: "stopped" };
-    readonly serverStatus: ScServerStatus;
 
     /** used as a counter to call into language, the reply is marked w/ this id */
     protected nextId = 0;
@@ -82,14 +79,6 @@ export class ScServiceCore {
         this.runtime.onLangMessage((msg) => this.langMessageEmitter.fire(msg));
         this.runtime.onExit((code) => this.onExit(code));
         this.runtime.onCompiled(() => this.markCompiled());
-
-        this.serverStatus = new ScServerStatus();
-
-        this.runtime.onLangMessage((msg) => {
-            if (msg.selector === SC_SERVER_INFO_ADDRESS) {
-                this.serverStatus.parseMessage(msg);
-            }
-        });
     }
 
     interpreterState(): InterpreterState {
