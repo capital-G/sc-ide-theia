@@ -10,7 +10,7 @@ export const ScServerWatcherService = Symbol("ScServerWatcherService");
 
 export type InterpreterState =
     | { kind: "stopped"; exitCode?: number }
-    | { kind: "starting"; pid?: number }
+    | { kind: "booting"; pid?: number }
     | { kind: "running"; pid?: number; compiled: boolean; channelUp: boolean };
 
 export const SC_REPLY_ADDRESS = "/reply";

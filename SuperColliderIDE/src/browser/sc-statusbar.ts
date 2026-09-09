@@ -68,6 +68,8 @@ export class ScStatusBarContribution implements FrontendApplicationContribution 
                     ? "var(--theia-statusBarItem-warningBackground)"
                     : undefined,
             onclick: () => this.showServerMenu(state),
+            className: `sc-status sc-status--${state.status}`,
+            tooltip: `Server status: ${state.status}${state.status == "online" ? ` (${state.hostname}:${state.port})` : ""}`,
         });
     }
 
@@ -78,11 +80,9 @@ export class ScStatusBarContribution implements FrontendApplicationContribution 
             ),
             alignment: StatusBarAlignment.LEFT,
             priority: 300,
-            backgroundColor:
-                this.interpreterState.kind === "starting"
-                    ? "var(--theia-statusBarItem-warningBackground)"
-                    : undefined,
             onclick: () => this.showLangMenu(),
+            className: `sc-status sc-status--${this.interpreterState.kind}`,
+            tooltip: `Interpreter status: ${this.interpreterState.kind}`,
         });
     }
 
@@ -90,11 +90,13 @@ export class ScStatusBarContribution implements FrontendApplicationContribution 
         const text =
             this.serverStatus.state.status === "offline"
                 ? ""
-                : `CPU: ${cpuInfo.average.toFixed(2).padStart(5, "0")} avg, ${cpuInfo.peak.toFixed(2).padStart(5, "0")} peak`;
+                : `${cpuInfo.average.toFixed(1).padStart(5)}% / ${cpuInfo.peak.toFixed(1).padStart(5)}%`;
         this.statusBar.setElement(SC_SERVER_CPU, {
             text,
             alignment: StatusBarAlignment.LEFT,
             priority: 100,
+            tooltip: `CPU: average ${cpuInfo.average.toFixed(2)}%, peak: ${cpuInfo.peak.toFixed(2)}%`,
+            className: "sc-cpu",
         });
     }
 
@@ -102,35 +104,37 @@ export class ScStatusBarContribution implements FrontendApplicationContribution 
         const text =
             this.serverStatus.state.status === "offline"
                 ? ""
-                : `${synthInfo.numUGens.toFixed(0).padStart(5, " ")} UGens ${synthInfo.numSynths.toFixed(0).padStart(5, " ")} synths ${synthInfo.numGroups.toFixed(0).padStart(5, " ")} groups ${synthInfo.numSynthDefs.toFixed(0).padStart(5, " ")} SynthDefs`;
+                : `${synthInfo.numUGens.toFixed(0).padStart(5)}u ${synthInfo.numSynths.toFixed(0).padStart(5)}s ${synthInfo.numGroups.toFixed(0).padStart(5)}g ${synthInfo.numSynthDefs.toFixed(0).padStart(5)}d`;
         this.statusBar.setElement(SC_SERVER_SYNTH, {
             text,
             alignment: StatusBarAlignment.LEFT,
             priority: 50,
+            tooltip: `${synthInfo.numUGens} UGens, ${synthInfo.numSynths} Synths, ${synthInfo.numGroups} Groups, ${synthInfo.numSynthDefs} SynthDefs`,
+            className: "sc-synth-info",
         });
     }
 
     protected static textForServerStatus(state: ServerBootStatus): string {
         switch (state.status) {
             case "offline":
-                return "$(circle-slash) Server offline";
+                return "$(circle-slash) Server";
             case "booting":
-                return `$(sync~spn) Server booting (${state.hostname}:${state.port})`;
+                return `$(sync~spn) Server`;
             case "online":
-                return `$(check) Server online (${state.hostname}:${state.port})`;
+                return `$(circle-filled) Server`;
             case "unresponsive":
-                return `$(warning) Server unresponsive`;
+                return `$(warning) Server`;
         }
     }
 
     protected static textForLangStatus(state: InterpreterState): string {
         switch (state.kind) {
             case "stopped":
-                return "$(circle-slash) sclang stopped";
-            case "starting":
-                return `$(sync~spn) sclang starting`;
+                return "$(circle-slash) sclang";
+            case "booting":
+                return `$(sync~spn) sclang`;
             case "running":
-                return `$(check) sclang running`;
+                return `$(circle-filled) sclang`;
         }
     }
 

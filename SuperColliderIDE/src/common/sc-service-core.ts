@@ -96,7 +96,7 @@ export class ScServiceCore {
         }
         await this.runtime.start();
         this.setState({
-            kind: "starting",
+            kind: "booting",
             pid: this.runtime.pid,
         });
     }

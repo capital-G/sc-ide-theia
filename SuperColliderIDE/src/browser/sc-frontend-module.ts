@@ -1,6 +1,7 @@
 /**
  * Generated using theia-extension-generator
  */
+import "../../src/browser/style/index.css";
 import { ScCommandContribution } from "./sc-contribution";
 import {
     CommandContribution,
@@ -32,6 +33,8 @@ import { ScAutocomplete } from "./sc-autocomplete";
 import { ScStatusBarContribution } from "./sc-statusbar";
 import { ScServerStatus } from "./sc-server-status";
 import { ScServerWatcherClientImpl } from "./sc-server-watcher-client-impl";
+import { ScColorContribution } from "./sc-color-contribution";
+import { ColorContribution } from "@theia/core/lib/browser/color-application-contribution";
 
 export default new ContainerModule((bind) => {
     bind(ScClientImpl).toSelf().inSingletonScope();
@@ -57,6 +60,8 @@ export default new ContainerModule((bind) => {
     bind(FrontendApplicationContribution).toService(ScAutocomplete);
     bind(FrontendApplicationContribution).toService(ScCommandContribution);
     bind(FrontendApplicationContribution).toService(ScStatusBarContribution);
+    bind(ScColorContribution).toSelf().inSingletonScope();
+    bind(ColorContribution).toService(ScColorContribution);
 
     bind(ScService)
         .toDynamicValue((ctx) => {
