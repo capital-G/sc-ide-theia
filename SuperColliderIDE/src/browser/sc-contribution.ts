@@ -120,13 +120,11 @@ export const ScServerDumpOSC: Command = {
 export const ScStartRecording: Command = {
     id: "sc.startRecording",
     label: "Start recording",
-    iconClass: "$record",
 };
 
 export const ScStartNamedRecording: Command = {
     id: "sc.startNamedRecording",
     label: "Start recording at path ...",
-    iconClass: "$(record)",
 };
 
 export const ScRememberImplCommand: Command = {
