@@ -15,11 +15,18 @@ export class ScClientImpl implements ScClient {
     protected readonly langEmitter = new Emitter<ScTheiaMessage>();
     readonly onLangMessageEvent: Event<ScTheiaMessage> = this.langEmitter.event;
 
+    protected _state: InterpreterState = { kind: "stopped" };
+
+    get state(): InterpreterState {
+        return this._state;
+    }
+
     onPost(chunk: string): void {
         this.postEmitter.fire(chunk);
     }
 
     onInterpreterStateChanged(state: InterpreterState): void {
+        this._state = state;
         this.stateEmitter.fire(state);
     }
 

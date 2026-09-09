@@ -4,10 +4,10 @@ import {
     CommandContribution,
     CommandRegistry,
     MessageService,
+    QuickInputService,
 } from "@theia/core/lib/common";
 import { ScMethodRef, ScService } from "../common/protocol";
 import {
-    FrontendApplication,
     FrontendApplicationContribution,
     KeybindingContribution,
     KeybindingRegistry,
@@ -17,16 +17,11 @@ import { evalRangeAt } from "./eval-region";
 import { FlashDecoration } from "./sc-flash-decoration";
 import { ScAutocomplete } from "./sc-autocomplete";
 import { MonacoEditor } from "@theia/monaco/lib/browser/monaco-editor";
+import { ScClientImpl } from "./sc-client-impl";
 
 export const SclangStartCommand: Command = {
     id: "sclang.start",
     label: "Start sclang",
-    category: "sclang",
-};
-
-export const SclangEvalTestCommand: Command = {
-    id: "sclang.evalTest",
-    label: "Eval sclang test",
     category: "sclang",
 };
 
@@ -42,16 +37,94 @@ export const SclangRecompileCommand: Command = {
     category: "sclang",
 };
 
+export const SclangRebootCommand: Command = {
+    id: "sclang.reboot",
+    label: "Reboot interpreter",
+    category: "sclang",
+};
+
+export const SclangQuitCommand: Command = {
+    id: "sclang.quit",
+    label: "Quit interpreter",
+    category: "sclang",
+};
+
 export const ScStopServer: Command = {
     id: "sc.stopServer",
     label: "Stop server playback",
     category: "server",
 };
 
-export const ScQueryTestCommand: Command = {
-    id: "sc.queryTest",
-    label: "Query test: SinOsc class methods staring with a",
-    category: "sclang",
+export const ScRebootServer: Command = {
+    id: "sc.rebootServer",
+    label: "$(debug-restart) Reboot server",
+    category: "server",
+};
+
+export const ScKillServer: Command = {
+    id: "sc.killServer",
+    label: "$(debug-stop) Kill server",
+    category: "server",
+};
+
+export const ScKillAllServers: Command = {
+    id: "sc.killAllServers",
+    label: "$(debug-stop) Kill all servers",
+    category: "server",
+};
+
+export const ScShowServerMeter: Command = {
+    id: "sc.showServerMeter",
+    label: "Show server meter",
+    category: "server",
+};
+
+export const ScShowScope: Command = {
+    id: "sc.showScope",
+    label: "Show scope",
+    category: "server",
+};
+
+export const ScShowFreqScope: Command = {
+    id: "sc.showFreqScope",
+    label: "Show freqscope",
+    category: "server",
+};
+
+export const ScDumpNodeTree: Command = {
+    id: "sc.dumpNodeTree",
+    label: "Dump node tree",
+    category: "server",
+};
+
+export const ScDumpNodeTreeWithControls: Command = {
+    id: "sc.dumpNodeTreeWithControls",
+    label: "Dump node tree with controls",
+    category: "server",
+};
+
+export const ScShowNodeTree: Command = {
+    id: "sc.showNodeTree",
+    label: "Show node tree",
+    category: "server",
+};
+
+export const ScServerDumpOSC: Command = {
+    id: "sc.serverDumpOSC",
+    label: "Server dump OSC",
+    category: "server",
+};
+
+export const ScStartRecording: Command = {
+    id: "sc.startRecording",
+    label: "Start recording",
+    iconClass: "record",
+};
+
+export const ScStartNamedRecording: Command = {
+    id: "sc.startNamedRecording",
+    label: "Start named recording",
+    iconClass: "record",
 };
 
 export const ScRememberImplCommand: Command = {
@@ -84,8 +157,11 @@ export class ScCommandContribution
     @inject(MessageService) protected readonly messageService!: MessageService;
     @inject(FlashDecoration) protected readonly flash!: FlashDecoration;
     @inject(ScAutocomplete) protected readonly autocomplete!: ScAutocomplete;
+    @inject(ScClientImpl) protected readonly client!: ScClientImpl;
+    @inject(QuickInputService)
+    protected readonly quickInput!: QuickInputService;
 
-    onDidInitializeLayout(app: FrontendApplication): void {
+    onDidInitializeLayout(): void {
         this.scService.startInterpreter();
     }
 
@@ -95,13 +171,7 @@ export class ScCommandContribution
                 this.messageService.info("Starting sclang");
                 this.scService.startInterpreter();
             },
-        });
-
-        registry.registerCommand(SclangEvalTestCommand, {
-            execute: () => {
-                this.messageService.info("Eval test");
-                this.scService.evaluate("2+2");
-            },
+            isEnabled: () => this.client.state.kind === "stopped",
         });
 
         registry.registerCommand(SclangEvalCommand, {
@@ -122,6 +192,19 @@ export class ScCommandContribution
 
         registry.registerCommand(SclangRecompileCommand, {
             execute: () => this.scService.recompile(),
+            isEnabled: () => this.client.state.kind !== "stopped",
+        });
+
+        registry.registerCommand(SclangRebootCommand, {
+            execute: () => {
+                this.scService.restartInterpreter();
+            },
+            isEnabled: () => this.client.state.kind !== "stopped",
+        });
+
+        registry.registerCommand(SclangQuitCommand, {
+            execute: () => {},
+            isEnabled: () => this.client.state.kind !== "stopped",
         });
 
         registry.registerCommand(ScStopServer, {
@@ -130,23 +213,93 @@ export class ScCommandContribution
             },
         });
 
-        registry.registerCommand(ScQueryTestCommand, {
+        registry.registerCommand(ScRebootServer, {
+            execute: () => {
+                this.scService.evaluate("Server.default.reboot;", false);
+            },
+            isEnabled: () => this.client.state.kind === "running",
+        });
+
+        registry.registerCommand(ScKillServer, {
+            execute: () => {
+                this.scService.evaluate("Server.default.quit;", false);
+            },
+            isEnabled: () => this.client.state.kind === "running",
+        });
+
+        registry.registerCommand(ScKillAllServers, {
+            execute: () => {
+                // @todo
+            },
+        });
+
+        registry.registerCommand(ScShowServerMeter, {
+            execute: () => {
+                this.scService.evaluate("Server.default.meter", false);
+            },
+            isEnabled: () => this.client.state.kind === "running",
+        });
+
+        registry.registerCommand(ScShowScope, {
+            execute: () => {
+                this.scService.evaluate("Server.default.scope", false);
+            },
+            isEnabled: () => this.client.state.kind === "running",
+        });
+
+        registry.registerCommand(ScShowFreqScope, {
+            execute: () => {
+                // @todo
+            },
+            isEnabled: () => false,
+        });
+
+        registry.registerCommand(ScDumpNodeTree, {
+            execute: () => {
+                // @todo
+            },
+            isEnabled: () => false,
+        });
+
+        registry.registerCommand(ScDumpNodeTreeWithControls, {
+            execute: () => {
+                // @todo
+            },
+            isEnabled: () => false,
+        });
+
+        registry.registerCommand(ScShowNodeTree, {
+            execute: () => {
+                // @todo
+            },
+            isEnabled: () => false,
+        });
+
+        registry.registerCommand(ScServerDumpOSC, {
+            execute: () => {
+                // @todo
+            },
+            isEnabled: () => false,
+        });
+
+        registry.registerCommand(ScStartRecording, {
+            execute: () => {
+                this.scService.evaluate("Server.default.record;", false);
+            },
+            isEnabled: () => this.client.state.kind === "running",
+        });
+
+        registry.registerCommand(ScStartNamedRecording, {
             execute: async () => {
-                const refs = await this.scService.queryMethod(
-                    "a",
-                    "SinOsc",
-                    "class",
-                );
-                this.messageService.info(
-                    `${refs.length} refs: ${JSON.stringify(refs)}`,
-                );
-                if (refs.length > 0) {
-                    const args = await this.scService.queryArgs(refs[0]);
-                    this.messageService.info(
-                        `args of ${refs[0].name}: ${JSON.stringify(args)}`,
-                    );
+                const name = await this.quickInput.input({
+                    prompt: "Recording name",
+                    value: "my-sc-recording",
+                });
+                if (name === undefined) {
+                    return;
                 }
             },
+            isEnabled: () => this.client.state.kind === "running",
         });
 
         registry.registerCommand(ScRememberImplCommand, {

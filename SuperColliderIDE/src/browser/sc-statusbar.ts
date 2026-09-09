@@ -1,8 +1,6 @@
 import {
     FrontendApplicationContribution,
     QuickInputService,
-    QuickPickItem,
-    QuickPickSeparator,
     StatusBar,
     StatusBarAlignment,
 } from "@theia/core/lib/browser";
@@ -15,6 +13,26 @@ import {
 } from "./sc-server-status";
 import { InterpreterState } from "../common/protocol";
 import { ScClientImpl } from "./sc-client-impl";
+import {
+    ScDumpNodeTree,
+    ScDumpNodeTreeWithControls,
+    ScKillAllServers,
+    ScKillServer,
+    SclangQuitCommand,
+    SclangRebootCommand,
+    SclangRecompileCommand,
+    SclangStartCommand,
+    ScRebootServer,
+    ScServerDumpOSC,
+    ScShowFreqScope,
+    ScShowNodeTree,
+    ScShowScope,
+    ScShowServerMeter,
+    ScStartNamedRecording,
+    ScStartRecording,
+    ScStopServer,
+} from "./sc-contribution";
+import { CommandRegistry } from "@theia/core";
 
 export const SC_SERVER_STATE = "sc-server-state";
 export const SC_SERVER_CPU = "sc-server-cpu";
@@ -29,6 +47,7 @@ export class ScStatusBarContribution implements FrontendApplicationContribution 
     @inject(ScClientImpl) protected readonly client!: ScClientImpl;
     @inject(QuickInputService)
     protected readonly quickInput!: QuickInputService;
+    @inject(CommandRegistry) protected readonly commands!: CommandRegistry;
 
     protected interpreterState: InterpreterState = { kind: "stopped" };
 
@@ -139,74 +158,55 @@ export class ScStatusBarContribution implements FrontendApplicationContribution 
     }
 
     protected async showServerMenu(state: ServerBootStatus): Promise<void> {
-        let items: Array<QuickPickItem | QuickPickSeparator> = [
-            { type: "separator", label: "Server" },
-            { label: "$(debug-restart) Reboot server", execute: () => {} },
-            { label: "$(debug-stop) Kill server", execute: () => {} },
-            { label: "$(debug-stop) Kill all servers", execute: () => {} },
+        const commands = [
+            ScStopServer,
+            ScRebootServer,
+            ScKillServer,
+            ScKillAllServers,
+            ScShowServerMeter,
+            ScShowScope,
+            ScShowFreqScope,
+            ScDumpNodeTree,
+            ScDumpNodeTreeWithControls,
+            ScShowNodeTree,
+            ScServerDumpOSC,
+            ScStartRecording,
+            ScStartNamedRecording,
         ];
-        if (state.status === "online") {
-            items.push(
-                { type: "separator", label: "Recording" },
-                {
-                    label: "$(record) Start recording",
-                    description: "Writes to ~/Music/SuperCollider recordings",
-                    execute: () => {},
-                },
-                {
-                    label: "$(record) Start named recording",
-                    description: "Writes to ~/Music/SuperCollider recordings",
-                    execute: async () => {
-                        const name = await this.quickInput.input({
-                            prompt: "Recording name",
-                            value: "my-sc-recording",
-                        });
-                        if (name === undefined) {
-                            return;
-                        }
-                    },
-                },
-                { type: "separator", label: "Introspection" },
-                { label: "Show server meter", execute: () => {} },
-                { label: "Show scope", execute: () => {} },
-                { label: "Show freqscope", execute: () => {} },
-                { label: "Dump node tree", execute: () => {} },
-                { label: "Dump node tree with controls", execute: () => {} },
-                { label: "Show node tree", execute: () => {} },
-                { label: "Server dump OSC", execute: () => {} },
-            );
-        }
-        const picked = await this.quickInput.showQuickPick(items, {
-            placeholder: "SuperCollider server",
-        });
+
+        const items = commands
+            .filter((cmd) => this.commands.isEnabled(cmd.id))
+            .map((cmd) => ({
+                label: cmd.label!,
+                execute: () => this.commands.executeCommand(cmd.id),
+            }));
+
+        const picked = await this.quickInput.showQuickPick(
+            [{ type: "separator", label: "Server" }, ...items],
+            { placeholder: "server" },
+        );
         picked?.execute?.();
     }
 
     protected async showLangMenu(): Promise<void> {
-        let items: Array<QuickPickItem | QuickPickSeparator> = [
-            { type: "separator", label: "Interpreter" },
+        const commands = [
+            SclangStartCommand,
+            SclangRecompileCommand,
+            SclangRebootCommand,
+            SclangQuitCommand,
         ];
-        if (this.interpreterState.kind === "running") {
-            items.push(
-                {
-                    label: "$(record) Recompile class library",
-                    execute: () => {},
-                },
-                {
-                    label: "$(debug-restart) Reboot interpreter",
-                    execute: () => {},
-                },
-                { label: "$(debug-stop) Quit interpreter", execute: () => {} },
-            );
-        } else {
-            items.push({
-                label: "$(debug-start) Start interpreter",
-                execute: () => {},
-            });
-        }
-        const picked = await this.quickInput.showQuickPick(items, {
-            placeholder: "sclang interpreter",
-        });
+
+        const items = commands
+            .filter((cmd) => this.commands.isEnabled(cmd.id))
+            .map((cmd) => ({
+                label: cmd.label!,
+                execute: () => this.commands.executeCommand(cmd.id),
+            }));
+
+        const picked = await this.quickInput.showQuickPick(
+            [{ type: "separator", label: "Interpreter" }, ...items],
+            { placeholder: "sclang interpreter" },
+        );
         picked?.execute?.();
     }
 }
