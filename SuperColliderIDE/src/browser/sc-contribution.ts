@@ -6,6 +6,8 @@ import {
     MessageService,
     QuickInputService,
 } from "@theia/core/lib/common";
+import { FileDialogService } from "@theia/filesystem/lib/browser";
+import { WorkspaceService } from "@theia/workspace/lib/browser";
 import { ScMethodRef, ScService } from "../common/protocol";
 import {
     FrontendApplicationContribution,
@@ -118,13 +120,13 @@ export const ScServerDumpOSC: Command = {
 export const ScStartRecording: Command = {
     id: "sc.startRecording",
     label: "Start recording",
-    iconClass: "record",
+    iconClass: "$record",
 };
 
 export const ScStartNamedRecording: Command = {
     id: "sc.startNamedRecording",
-    label: "Start named recording",
-    iconClass: "record",
+    label: "Start recording at path ...",
+    iconClass: "$(record)",
 };
 
 export const ScRememberImplCommand: Command = {
@@ -160,6 +162,10 @@ export class ScCommandContribution
     @inject(ScClientImpl) protected readonly client!: ScClientImpl;
     @inject(QuickInputService)
     protected readonly quickInput!: QuickInputService;
+    @inject(FileDialogService)
+    protected readonly fileDialog!: FileDialogService;
+    @inject(WorkspaceService)
+    protected readonly workspaceService!: WorkspaceService;
 
     onDidInitializeLayout(): void {
         this.scService.startInterpreter();
@@ -291,13 +297,20 @@ export class ScCommandContribution
 
         registry.registerCommand(ScStartNamedRecording, {
             execute: async () => {
-                const name = await this.quickInput.input({
-                    prompt: "Recording name",
-                    value: "my-sc-recording",
-                });
-                if (name === undefined) {
+                const root = this.workspaceService.tryGetRoots()[0];
+                const uri = await this.fileDialog.showSaveDialog(
+                    {
+                        title: "Start recording",
+                        saveLabel: "Record",
+                        inputValue: "sc-recording.wav",
+                        filters: { Audio: ["wav", "aiff", "flac"] },
+                    },
+                    root,
+                );
+                if (!uri) {
                     return;
                 }
+                // @todo...
             },
             isEnabled: () => this.client.state.kind === "running",
         });
