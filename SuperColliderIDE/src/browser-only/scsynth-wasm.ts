@@ -24,6 +24,9 @@ export class ScsynthWasm {
     protected readonly postEmitter = new Emitter<string>();
     readonly onPost: Event<string> = this.postEmitter.event;
 
+    protected readonly replyEmitter = new Emitter<Uint8Array>();
+    readonly onOscReplyEvent: Event<Uint8Array> = this.replyEmitter.event;
+
     constructor(
         // pass osc messages back to sclang
         protected readonly onReply: (bytes: Uint8Array) => void,
@@ -46,7 +49,14 @@ export class ScsynthWasm {
         });
 
         module.onPrint = (line) => this.postEmitter.fire(`${line}\n`);
-        module.onOscReply = (bytes) => this.onReply(new Uint8Array(bytes));
+        module.onOscReply = (bytes) => {
+            const copy = new Uint8Array(bytes);
+            // forward to sclang
+            this.onReply(copy);
+            // but also to ourselves so we can extract
+            // e.g. /status.reply
+            this.replyEmitter.fire(copy);
+        };
         module.boot(options);
         this.module = module;
 

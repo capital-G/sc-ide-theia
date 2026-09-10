@@ -68,12 +68,15 @@ export class ScServerStatus implements FrontendApplicationContribution {
         const [selector, ...args] = msg.payload;
         switch (selector) {
             case "state":
-                // serverBooting, serverRunning, hostname, port, unresponsive
-                const booting = Boolean(args[0]);
-                const running = Boolean(args[1]);
+                // serverBooting, serverRunning, hostname, port, unresponsive.
+                // node uses OSC-typed values (bool/int), wasm uses strings
+                const truthy = (v: unknown): boolean =>
+                    v === true || v === 1 || v === "true" || v === "1";
+                const booting = truthy(args[0]);
+                const running = truthy(args[1]);
                 const hostname = args[2];
                 const port = Number(args[3]);
-                const unresponsive = Boolean(args[4]);
+                const unresponsive = truthy(args[4]);
 
                 if (booting) {
                     this.state = {

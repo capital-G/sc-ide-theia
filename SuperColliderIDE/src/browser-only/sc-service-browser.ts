@@ -31,6 +31,10 @@ export class ScServiceBrowser implements ScService {
     );
     protected readonly core = new ScServiceCore(this.runtime);
 
+    get serverTransport(): ScsynthWasm {
+        return this.scsynth;
+    }
+
     // run this only after everything has been constructed b/c we rely on the injection
     // to be available
     @postConstruct()
