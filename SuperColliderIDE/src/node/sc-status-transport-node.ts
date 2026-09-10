@@ -4,7 +4,7 @@ import { ScStatusTransport } from "../common/sc-server-watcher-core";
 import { SclangUdp } from "./sclang-udp";
 
 export class NodeStatusTransport implements ScStatusTransport {
-    protected readonly emitter = new Emitter<OSC.Message>();
+    protected readonly emitter = new Emitter<Uint8Array>();
     readonly onOscReply = this.emitter.event;
     protected udp: SclangUdp | undefined;
     protected static OSC_STATUS = new OSC.Message("/status");
@@ -15,7 +15,7 @@ export class NodeStatusTransport implements ScStatusTransport {
     ) {}
 
     async start(): Promise<void> {
-        this.udp = new SclangUdp((msg) => this.emitter.fire(msg));
+        this.udp = new SclangUdp((bytes) => this.emitter.fire(bytes));
         await this.udp.start();
     }
 

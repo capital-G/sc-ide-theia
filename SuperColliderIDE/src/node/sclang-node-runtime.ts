@@ -1,5 +1,6 @@
 import { Event, Emitter } from "@theia/core";
 import {
+    decodeScOsc,
     SclangRuntime,
     ScReply,
     ScTheiaMessage,
@@ -69,7 +70,14 @@ export class SclangNodeRuntime implements SclangRuntime {
         }
         // the socket is allowed to outlive since we only run a single interpreter
         if (!this.udp) {
-            this.udp = new SclangUdp((msg) => this.onOsc(msg));
+            this.udp = new SclangUdp((bytes) => {
+                const decoded = decodeScOsc(bytes);
+                if (decoded.kind === "reply") {
+                    this.replyEmitter.fire(decoded.reply);
+                } else {
+                    this.langMessageEmitter.fire(decoded.message);
+                }
+            });
             this.port = await this.udp.start();
         }
 

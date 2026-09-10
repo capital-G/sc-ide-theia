@@ -6,7 +6,7 @@ export interface ScStatusTransport {
     /** sends `/status` to a running server */
     requestStatus(): void;
     /** fires for every OSC message the server sends back */
-    readonly onOscReply: Event<OSC.Message>;
+    readonly onOscReply: Event<Uint8Array>;
     dispose(): void;
 }
 
@@ -35,7 +35,11 @@ export class ScServerWatcherCore {
         this.timer = undefined;
     }
 
-    protected onOsc(msg: OSC.Message): void {
+    protected onOsc(bytes: Uint8Array): void {
+        const msg = new OSC.Message("");
+        msg.unpack(
+            new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+        );
         if (msg.address === "/status.reply") {
             this.infoEmitter.fire({
                 synths: {

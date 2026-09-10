@@ -33,6 +33,8 @@ Open <http://localhost:3000> in the browser.
 
 ## Running the wasm app
 
+Copy the wasm build files of scsynth and sclang into `browser-only-app/wasm`.
+
 ```shell
 npm run prepare && npm run build:browser-only && npm run start:browser-only
 ```

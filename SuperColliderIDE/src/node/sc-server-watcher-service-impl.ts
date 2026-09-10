@@ -37,7 +37,7 @@ export class ScServerWatcherServiceImpl
         this.port = port;
 
         if (!this.udp) {
-            this.udp = new SclangUdp((msg) => this.onOsc(msg));
+            this.udp = new SclangUdp((bytes) => this.onOsc(bytes));
             await this.udp.start();
         }
 
@@ -61,7 +61,11 @@ export class ScServerWatcherServiceImpl
         clearInterval(this.replyRoutine);
     }
 
-    onOsc(msg: OSC.Message): void {
+    onOsc(bytes: Uint8Array): void {
+        const msg = new OSC.Message("");
+        msg.unpack(
+            new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+        );
         if (msg.address === "/status.reply") {
             const info: ScServerInfo = {
                 synths: {

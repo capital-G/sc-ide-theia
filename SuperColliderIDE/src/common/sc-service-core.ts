@@ -7,6 +7,8 @@ import {
     ScMethodSide,
 } from "./protocol";
 import { SC_BOOTSTRAP } from "./sc-bootstrap";
+import { SC_REPLY_ADDRESS } from "./protocol";
+import OSC from "osc-js";
 
 export const SC_RESOLVE_TIMEOUT_MS = 500;
 
@@ -22,6 +24,10 @@ export interface ScTheiaMessage {
     payload: any[];
 }
 
+export type ScOsc =
+    | { kind: "reply"; reply: ScReply }
+    | { kind: "lang"; message: ScTheiaMessage };
+
 export interface SclangRuntime {
     start(): Promise<void>;
     kill(): void;
@@ -32,7 +38,7 @@ export interface SclangRuntime {
      * @param code Code to run
      * @param silent if true, this will not yield to stdout.
      * In node/local it uses an ascii sign to indicate a silent evaluation.
-     * In wasm this uses `runCodeSilent` w/ the `onIdeReply` callback.
+     * In wasm this uses `runCodeSilent` w/ the `ideSend` callback.
      */
     evaluate(code: string, silent: boolean): void;
     recompile(): void;
@@ -280,4 +286,27 @@ export function decodeArgRows(rows: string[] | undefined): ScArg[] | undefined {
             ? { name: row }
             : { name: row.slice(0, eq), default: row.slice(eq + 1) };
     });
+}
+
+/** decode a raw OSC message */
+export function decodeScOsc(bytes: Uint8Array): ScOsc {
+    const msg = new OSC.Message("");
+    msg.unpack(new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength));
+    if (msg.address === SC_REPLY_ADDRESS) {
+        const [rawId, ...rest] = msg.args;
+        return {
+            kind: "reply",
+            reply: {
+                id: Number(rawId),
+                rows: rest.filter((a): a is string => typeof a === "string"),
+            },
+        };
+    }
+    return {
+        kind: "lang",
+        message: {
+            selector: msg.address,
+            payload: msg.args,
+        },
+    };
 }

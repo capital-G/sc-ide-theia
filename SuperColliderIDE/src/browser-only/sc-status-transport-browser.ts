@@ -5,18 +5,14 @@ import { ScsynthWasm } from "./scsynth-wasm";
 import { Disposable } from "@theia/core/lib/common/disposable";
 
 export class BrowserStatusTransport implements ScStatusTransport {
-    protected readonly emitter = new Emitter<OSC.Message>();
+    protected readonly emitter = new Emitter<Uint8Array>();
     readonly onOscReply = this.emitter.event;
     protected readonly sub: Disposable;
     protected static OSC_STATUS_MESSAGE = new OSC.Message("/status").pack();
 
     constructor(protected readonly scsynth: ScsynthWasm) {
         this.sub = scsynth.onOscReplyEvent((bytes) => {
-            const msg = new OSC.Message("");
-            msg.unpack(
-                new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
-            );
-            this.emitter.fire(msg);
+            this.emitter.fire(bytes);
         });
     }
 

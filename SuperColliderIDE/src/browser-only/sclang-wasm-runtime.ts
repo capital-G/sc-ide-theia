@@ -1,11 +1,11 @@
 import { Emitter, Event } from "@theia/core";
 import {
+    decodeScOsc,
     SclangRuntime,
     ScReply,
     ScTheiaMessage,
 } from "../common/sc-service-core";
 import { importGlue } from "./tools";
-import { SC_REPLY_ADDRESS } from "../common/protocol";
 
 export const SC_WASM_BASE_URL = "/sc";
 
@@ -16,7 +16,7 @@ interface SclangModule {
     sendOsc(bytes: Uint8Array): void;
     printCallback: (line: string) => void;
     printErrCallback: (line: string) => void;
-    onIdeReply: (id: number, payload: string) => void;
+    onIdeSend: (message: Uint8Array) => void;
     onOsc: (msg: Uint8Array) => void;
 }
 
@@ -63,13 +63,12 @@ export class SclangWasmRuntime implements SclangRuntime {
         module.printCallback = (line) => this.onLine(line);
         module.printErrCallback = (line) => this.onLine(line);
 
-        module.onIdeReply = (_id, payload) => {
-            const [selector, ...rows] = payload.split("\n");
-            if (selector === SC_REPLY_ADDRESS) {
-                const [rawId, ...replyRows] = rows;
-                this.replyEmitter.fire({ id: Number(rawId), rows: replyRows });
+        module.onIdeSend = (bytes) => {
+            const decoded = decodeScOsc(new Uint8Array(bytes));
+            if (decoded.kind === "reply") {
+                this.replyEmitter.fire(decoded.reply);
             } else {
-                this.langMessageEmitter.fire({ selector, payload: rows });
+                this.langMessageEmitter.fire(decoded.message);
             }
         };
 
@@ -106,7 +105,7 @@ export class SclangWasmRuntime implements SclangRuntime {
     }
 
     get bootstrapPrologue(): string {
-        return `~theiaEmit = {|selector ...rows| JS.ideReply(0, ([selector] ++ rows).join("\n"))};\n`;
+        return `~theiaEmit = {|selector ...rows| JS.ideSend(([selector] ++ rows).asRawOSC)};\n`;
     }
 
     readonly pid = undefined;
