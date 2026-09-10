@@ -8,7 +8,7 @@
     "build:browser": "npm --prefix browser-app run bundle",
     "build:electron": "npm --prefix electron-app run bundle",
     "build:browser-only": "npm --prefix browser-only-app run bundle",
-    "prepare": "husky",
+    "prepare": "husky && lerna run prepare",
     "postinstall": "theia check:theia-version",
     "start:browser": "npm --prefix browser-app start",
     "start:electron": "npm --prefix electron-app start",

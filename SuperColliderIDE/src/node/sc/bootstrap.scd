@@ -89,6 +89,22 @@
 	val.isNil.if([], { [val.class.name.asString] });
 };
 
+~sendServerStateUpdate = {|server|
+	defer {
+		~theiaEmit.("/server", "state",
+			server.serverBooting,
+			server.serverRunning,
+			server.addr.hostname,
+			server.addr.port,
+			server.unresponsive,
+		);
+	}
+};
+~serverLookup = SimpleController(Server.default);
+~serverLookup.put(\serverRunning, {|server| ~sendServerStateUpdate.(server)});
+~serverLookup.put(\defaultServerRunningChanged, {|server| ~sendServerStateUpdate.(server)});
+
+
 ~theiaIDE = {|id, selector ... searchArgs|
 	var reply = switch(selector)
 		{\class} {~classLookup.(*searchArgs)}
@@ -104,5 +120,5 @@
 		)}
 		{\envClass} {~envClassLookup.(searchArgs[0])};
 	// reply could be empty on unknown lookup
-	~theiaEmit.(id, reply ? []);
+	~theiaEmit.("/reply", *([id] ++ (reply ? [])));
 };

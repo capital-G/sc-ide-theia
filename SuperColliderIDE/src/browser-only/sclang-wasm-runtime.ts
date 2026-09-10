@@ -1,6 +1,11 @@
 import { Emitter, Event } from "@theia/core";
-import { SclangRuntime, ScReply } from "../common/sc-service-core";
+import {
+    SclangRuntime,
+    ScReply,
+    ScTheiaMessage,
+} from "../common/sc-service-core";
 import { importGlue } from "./tools";
+import { SC_REPLY_ADDRESS } from "../common/protocol";
 
 export const SC_WASM_BASE_URL = "/sc";
 
@@ -28,6 +33,10 @@ export class SclangWasmRuntime implements SclangRuntime {
     protected readonly replyEmitter = new Emitter<ScReply>();
     readonly onReply: Event<ScReply> = this.replyEmitter.event;
 
+    protected readonly langMessageEmitter = new Emitter<ScTheiaMessage>();
+    readonly onLangMessage: Event<ScTheiaMessage> =
+        this.langMessageEmitter.event;
+
     protected readonly exitEmitter = new Emitter<number | null>();
     readonly onExit: Event<number | null> = this.exitEmitter.event;
 
@@ -54,11 +63,15 @@ export class SclangWasmRuntime implements SclangRuntime {
         module.printCallback = (line) => this.onLine(line);
         module.printErrCallback = (line) => this.onLine(line);
 
-        module.onIdeReply = (id, payload) =>
-            this.replyEmitter.fire({
-                id,
-                rows: payload.split("\n"),
-            });
+        module.onIdeReply = (_id, payload) => {
+            const [selector, ...rows] = payload.split("\n");
+            if (selector === SC_REPLY_ADDRESS) {
+                const [rawId, ...replyRows] = rows;
+                this.replyEmitter.fire({ id: Number(rawId), rows: replyRows });
+            } else {
+                this.langMessageEmitter.fire({ selector, payload: rows });
+            }
+        };
 
         module.onOsc = (bytes) => this.onLangOsc(new Uint8Array(bytes));
         this.module = module;
@@ -93,7 +106,7 @@ export class SclangWasmRuntime implements SclangRuntime {
     }
 
     get bootstrapPrologue(): string {
-        return `~theiaEmit = {|id, rows| JS.ideReply(id, rows.join("\n"))};\n`;
+        return `~theiaEmit = {|selector ...rows| JS.ideReply(0, ([selector] ++ rows).join("\n"))};\n`;
     }
 
     readonly pid = undefined;

@@ -1,0 +1,24 @@
+.sc-status--online .codicon,
+.sc-status--running .codicon {
+    color: var(--theia-sc-statusRunning);
+}
+
+.sc-status--offline .codicon,
+.sc-status--stopped .codicon {
+    color: var(--theia-sc-statusStopped);
+}
+
+.sc-status--unresponsive .codicon {
+    color: var(--theia-sc-statusUnresponsive);
+}
+
+.sc-status--booting .codicon {
+    color: var(--theia-sc-statusBooting);
+}
+
+.sc-synth-info,
+.sc-cpu {
+    white-space: pre !important;
+    font-variant-numeric: tabular-nums !important;
+    font-family: var(--theia-editor-font-family, monospace) !important;
+}

@@ -1,7 +1,6 @@
 import { Emitter, Event } from "@theia/core";
 import {
     InterpreterState,
-    LangMessage,
     QuerySelector,
     ScArg,
     ScMethodRef,
@@ -11,9 +10,16 @@ import { SC_BOOTSTRAP } from "./sc-bootstrap";
 
 export const SC_RESOLVE_TIMEOUT_MS = 500;
 
+/** Only used to reply to requests from theia */
 export interface ScReply {
     id: number;
     rows: string[];
+}
+
+/* Arbitrary messages send to `~theiaEmit` - replies are filtered out */
+export interface ScTheiaMessage {
+    selector: string;
+    payload: any[];
 }
 
 export interface SclangRuntime {
@@ -36,6 +42,7 @@ export interface SclangRuntime {
     /** must emit completed bytes of strings, otherwise it can corrupt the post window */
     readonly onPost: Event<string>;
     readonly onReply: Event<ScReply>;
+    readonly onLangMessage: Event<ScTheiaMessage>;
     readonly onExit: Event<number | null>;
     readonly onCompiled: Event<void>;
     /** only applicabale to desktop version */
@@ -62,12 +69,14 @@ export class ScServiceCore {
     protected readonly stateEmitter = new Emitter<InterpreterState>();
     readonly onStateChanged: Event<InterpreterState> = this.stateEmitter.event;
 
-    protected readonly langEmitter = new Emitter<LangMessage>();
-    readonly onLangMessage: Event<LangMessage> = this.langEmitter.event;
+    protected readonly langMessageEmitter = new Emitter<ScTheiaMessage>();
+    readonly onLangMessage: Event<ScTheiaMessage> =
+        this.langMessageEmitter.event;
 
     constructor(protected readonly runtime: SclangRuntime) {
         this.runtime.onPost((chunk) => this.postEmitter.fire(chunk));
         this.runtime.onReply((reply) => this.onReply(reply));
+        this.runtime.onLangMessage((msg) => this.langMessageEmitter.fire(msg));
         this.runtime.onExit((code) => this.onExit(code));
         this.runtime.onCompiled(() => this.markCompiled());
     }
@@ -87,7 +96,7 @@ export class ScServiceCore {
         }
         await this.runtime.start();
         this.setState({
-            kind: "starting",
+            kind: "booting",
             pid: this.runtime.pid,
         });
     }
@@ -153,24 +162,6 @@ export class ScServiceCore {
         if (this.state.kind === "running" && !this.state.channelUp) {
             this.setState({ ...this.state, channelUp: true });
         }
-
-        if (reply.id === 0) {
-            const [selector, json] = reply.rows;
-            if (!selector) {
-                return;
-            }
-            let data: unknown = json;
-            try {
-                if (json !== undefined) {
-                    data = JSON.parse(json);
-                }
-            } catch {
-                // something ;)
-            }
-            this.langEmitter.fire({ selector, data });
-            return;
-        }
-
         const p = this.pending.get(reply.id);
         // we may already timed out
         if (!p) {
@@ -260,7 +251,7 @@ export class ScServiceCore {
         this.runtime.kill();
         this.postEmitter.dispose();
         this.stateEmitter.dispose();
-        this.langEmitter.dispose();
+        this.langMessageEmitter.dispose();
     }
 }
 

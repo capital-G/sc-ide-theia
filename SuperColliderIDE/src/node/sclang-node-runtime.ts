@@ -1,8 +1,15 @@
 import { Event, Emitter } from "@theia/core";
-import { SclangRuntime, ScReply } from "../common/sc-service-core";
+import {
+    SclangRuntime,
+    ScReply,
+    ScTheiaMessage,
+} from "../common/sc-service-core";
 import { EVALUATE, RECOMPILE, SclangProcess, SILENT } from "./sclang-process";
 import { SclangUdp } from "./sclang-udp";
-import { SC_QUERY_LIMIT } from "../common/protocol";
+import {
+    SC_QUERY_LIMIT,
+    SC_REPLY_ADDRESS as SC_REPLY_SELECTOR,
+} from "../common/protocol";
 import { access, constants } from "fs/promises";
 import OSC from "osc-js";
 
@@ -29,6 +36,10 @@ export class SclangNodeRuntime implements SclangRuntime {
     protected readonly compiledEmitter = new Emitter<void>();
     readonly onCompiled: Event<void> = this.compiledEmitter.event;
 
+    protected readonly langMessageEmitter = new Emitter<ScTheiaMessage>();
+    readonly onLangMessage: Event<ScTheiaMessage> =
+        this.langMessageEmitter.event;
+
     protected onChunk(chunk: string): void {
         this.postEmitter.fire(chunk);
         // @todo remove this check for every chunk...
@@ -45,7 +56,7 @@ export class SclangNodeRuntime implements SclangRuntime {
         return (
             `~theiaLimit = ${SC_QUERY_LIMIT};` +
             `~theiaAddr = NetAddr("127.0.0.1", ${this.port});` +
-            `~theiaEmit = {|id, rows| ~theiaAddr.sendMsg("/complete", id, *rows)};`
+            `~theiaEmit = {|selector ...rows| ~theiaAddr.sendMsg(selector, *rows)};`
         );
     }
 
@@ -89,14 +100,21 @@ export class SclangNodeRuntime implements SclangRuntime {
     }
 
     protected onOsc(msg: OSC.Message): void {
-        const [id, ...args] = msg.args;
-        if (typeof id !== "number") {
-            return;
+        if (msg.address === SC_REPLY_SELECTOR) {
+            const [rawId, ...replyArgs] = msg.args;
+            const id = Number(rawId);
+            this.replyEmitter.fire({
+                id,
+                rows: replyArgs.filter(
+                    (a): a is string => typeof a === "string",
+                ),
+            });
+        } else {
+            this.langMessageEmitter.fire({
+                selector: msg.address,
+                payload: msg.args,
+            });
         }
-        this.replyEmitter.fire({
-            id,
-            rows: args.filter((a): a is string => typeof a === "string"),
-        });
     }
 
     async resolveSclangPath(): Promise<string | undefined> {

@@ -1,13 +1,20 @@
 import { RpcServer } from "@theia/core";
+import { ScTheiaMessage } from "./sc-service-core";
 
 export const SC_SERVICE_PATH = "/services/supercollider";
+export const SC_SERVER_WATCHER_PATH = "/services/scserverwatcher";
 export const ScService = Symbol("ScService");
 export const ScClient = Symbol("ScClient");
+export const ScServerWatcherClient = Symbol("ScServerWatcher");
+export const ScServerWatcherService = Symbol("ScServerWatcherService");
 
 export type InterpreterState =
     | { kind: "stopped"; exitCode?: number }
-    | { kind: "starting"; pid?: number }
+    | { kind: "booting"; pid?: number }
     | { kind: "running"; pid?: number; compiled: boolean; channelUp: boolean };
+
+export const SC_REPLY_ADDRESS = "/reply";
+export const SC_SERVER_INFO_ADDRESS = "/server";
 
 // capture by word
 export const SC_CLASS_REGEX = /^[A-Z][A-Za-z0-9_]*$/;
@@ -52,15 +59,6 @@ export enum QuerySelector {
 }
 
 /**
- * One decoded frame from sclang.
- * Data is parsed JSON.
- */
-export interface LangMessage {
-    selector: string;
-    data: unknown;
-}
-
-/**
  * Defines the service between backend and frontend.
  */
 export interface ScService extends RpcServer<ScClient> {
@@ -88,5 +86,32 @@ export interface ScService extends RpcServer<ScClient> {
 export interface ScClient {
     onPost(chunk: string): void;
     onInterpreterStateChanged(state: InterpreterState): void;
-    onLangMessage(msg: LangMessage): void;
+    onLangMessage(msg: ScTheiaMessage): void;
+}
+
+export interface ScServerCpuInfo {
+    peak: number;
+    average: number;
+}
+
+export interface ScServerSynthInfo {
+    numSynths: number;
+    numGroups: number;
+    numUGens: number;
+    numSynthDefs: number;
+}
+
+export interface ScServerInfo {
+    cpu: ScServerCpuInfo;
+    synths: ScServerSynthInfo;
+}
+
+/** lives on frontend, backend calls it to push data */
+export interface ScServerWatcherClient {
+    onServerInfo(info: ScServerInfo): void;
+}
+
+/** lives on backend, frontend calls it */
+export interface ScServerWatcherService extends RpcServer<ScServerWatcherClient> {
+    startWatching(host: string, port: number): void;
 }
