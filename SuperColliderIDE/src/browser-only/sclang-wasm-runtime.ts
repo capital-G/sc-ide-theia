@@ -11,8 +11,7 @@ export const SC_WASM_BASE_URL = "/sc";
 
 interface SclangModule {
     bootInterpreter(): void;
-    runCode(code: string): void;
-    runCodeSilent(code: string): void;
+    runCode(code: string, silent: boolean): void;
     sendOsc(bytes: Uint8Array): void;
     printCallback: (line: string) => void;
     printErrCallback: (line: string) => void;
@@ -79,10 +78,14 @@ export class SclangWasmRuntime implements SclangRuntime {
     }
 
     protected onLine(line: string): void {
-        this.postEmitter.fire(`${line}\n`);
-        if (line.includes("compile done")) {
-            this.compiledEmitter.fire();
-        }
+        // defer it b/c we should not call into sclang
+        // while watching its output?
+        setTimeout(() => {
+            this.postEmitter.fire(`${line}\n`);
+            if (line.includes("*** Welcome to SuperCollider ")) {
+                this.compiledEmitter.fire();
+            }
+        }, 1);
     }
 
     kill(): void {
@@ -93,11 +96,7 @@ export class SclangWasmRuntime implements SclangRuntime {
         if (!this.module) {
             return;
         }
-        if (silent) {
-            this.module.runCodeSilent(code);
-        } else {
-            this.module.runCode(code);
-        }
+        this.module.runCode(code, silent);
     }
 
     recompile(): void {
