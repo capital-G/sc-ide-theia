@@ -17,6 +17,25 @@ interface SclangModule {
     printErrCallback: (line: string) => void;
     onIdeSend: (message: Uint8Array) => void;
     onOsc: (msg: Uint8Array) => void;
+    FS: EmscriptenFS;
+    addFile(path: string, content: Uint8Array): void;
+    makeDir(path: string): void;
+}
+
+/**
+ * Subset of emscripten fs - all run synchronous on the main thread.
+ */
+export interface EmscriptenFS {
+    readFile(path: string, opts: { encoding: "binary" }): Uint8Array;
+    readdir(path: string): string[];
+    stat(path: string): { mode: number; size: number; mtime: Date };
+    isDir(mode: number): boolean;
+    isFile(mode: number): boolean;
+    writeFile(path: string, data: Uint8Array): void;
+    mkdir(path: string): void;
+    unlink(path: string): void;
+    rmdir(path: string): void;
+    rename(oldPath: string, newPath: string): void;
 }
 
 type SclangFactory = (cfg: {
@@ -41,6 +60,10 @@ export class SclangWasmRuntime implements SclangRuntime {
 
     protected readonly compiledEmitter = new Emitter<void>();
     readonly onCompiled: Event<void> = this.compiledEmitter.event;
+
+    /** fires once the module (and its preloaded MEMFS) has been loaded */
+    protected readonly fsReadyEmitter = new Emitter<void>();
+    readonly onFsReady: Event<void> = this.fsReadyEmitter.event;
 
     constructor(
         protected readonly onLangOsc: (bytes: Uint8Array) => void,
@@ -73,6 +96,7 @@ export class SclangWasmRuntime implements SclangRuntime {
 
         module.onOsc = (bytes) => this.onLangOsc(new Uint8Array(bytes));
         this.module = module;
+        this.fsReadyEmitter.fire();
 
         module.bootInterpreter();
     }
@@ -108,6 +132,11 @@ export class SclangWasmRuntime implements SclangRuntime {
     }
 
     readonly pid = undefined;
+
+    /** sclang's MEMFS - only reachable once the module has been started */
+    get fs(): EmscriptenFS | undefined {
+        return this.module?.FS;
+    }
 
     sendOsc(bytes: Uint8Array): void {
         this.module?.sendOsc(bytes);

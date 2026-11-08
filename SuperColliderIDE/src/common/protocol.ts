@@ -56,6 +56,8 @@ export enum QuerySelector {
     ARGS_LOOKUP = "args",
     // ~foo becomes "foo"
     ENV_CLASS_LOOKUP = "envClass",
+    // ~theiaIde.("classLibDir") - path in sclang's own filesystem
+    CLASS_LIBRARY_DIR = "classLibDir",
 }
 
 /**
@@ -81,6 +83,8 @@ export interface ScService extends RpcServer<ScClient> {
     ): Promise<ScMethodRef[]>;
     queryArgs(ref: ScMethodRef): Promise<ScArg[] | undefined>;
     queryEnvClass(text: string): Promise<string | undefined>;
+    /** path of the class library within sclang's filesystem */
+    queryClassLibraryDir(): Promise<string | undefined>;
 }
 
 export interface ScClient {

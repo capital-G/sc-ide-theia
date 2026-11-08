@@ -118,7 +118,8 @@
 			searchArgs[1],
 			searchArgs[2] == "class",
 		)}
-		{\envClass} {~envClassLookup.(searchArgs[0])};
+		{\envClass} {~envClassLookup.(searchArgs[0])}
+		{\classLibDir} {[Platform.classLibraryDir]};
 	// reply could be empty on unknown lookup
 	~theiaEmit.("/reply", *([id] ++ (reply ? [])));
 };

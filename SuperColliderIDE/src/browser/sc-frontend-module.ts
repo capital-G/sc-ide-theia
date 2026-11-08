@@ -20,6 +20,8 @@ import {
     FrontendApplicationContribution,
     KeybindingContribution,
     RemoteConnectionProvider,
+    WidgetFactory,
+    bindViewContribution,
     ServiceConnectionProvider,
 } from "@theia/core/lib/browser";
 import { ScClientImpl } from "./sc-client-impl";
@@ -35,8 +37,23 @@ import { ScServerStatus } from "./sc-server-status";
 import { ScServerWatcherClientImpl } from "./sc-server-watcher-client-impl";
 import { ScColorContribution } from "./sc-color-contribution";
 import { ColorContribution } from "@theia/core/lib/browser/color-application-contribution";
+import {
+    SC_CLASS_LIBRARY_WIDGET_ID,
+    ScClassLibraryViewContribution,
+    createScClassLibraryWidget,
+} from "./sc-class-library-widget";
+import {
+    ScClassLibraryLocator,
+    ScLangClassLibraryLocator,
+} from "./sc-class-library-locator";
+import { QuickFileSelectService } from "@theia/file-search/lib/browser/quick-file-select-service";
+import { ScQuickFileSelectService } from "./sc-quick-file-select";
+import {
+    ScFileLangPathResolver,
+    ScLangPathResolver,
+} from "./sc-lang-path-resolver";
 
-export default new ContainerModule((bind) => {
+export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(ScClientImpl).toSelf().inSingletonScope();
     bind(ScClient).toService(ScClientImpl);
     bind(ScServerWatcherClientImpl).toSelf().inSingletonScope();
@@ -62,6 +79,26 @@ export default new ContainerModule((bind) => {
     bind(FrontendApplicationContribution).toService(ScStatusBarContribution);
     bind(ScColorContribution).toSelf().inSingletonScope();
     bind(ColorContribution).toService(ScColorContribution);
+
+    // the wasm frontend-only module rebinds these to its MEMFS
+    bind(ScLangPathResolver).to(ScFileLangPathResolver).inSingletonScope();
+    bind(ScClassLibraryLocator)
+        .to(ScLangClassLibraryLocator)
+        .inSingletonScope();
+    bindViewContribution(bind, ScClassLibraryViewContribution);
+    bind(FrontendApplicationContribution).toService(
+        ScClassLibraryViewContribution,
+    );
+    bind(WidgetFactory)
+        .toDynamicValue((ctx) => ({
+            id: SC_CLASS_LIBRARY_WIDGET_ID,
+            createWidget: () => createScClassLibraryWidget(ctx.container),
+        }))
+        .inSingletonScope();
+    bind(ScQuickFileSelectService).toSelf().inSingletonScope();
+    (isBound(QuickFileSelectService) ? rebind : bind)(
+        QuickFileSelectService,
+    ).toService(ScQuickFileSelectService);
 
     bind(ScService)
         .toDynamicValue((ctx) => {

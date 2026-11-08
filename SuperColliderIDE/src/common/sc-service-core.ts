@@ -253,6 +253,10 @@ export class ScServiceCore {
         return (await this.query(QuerySelector.ENV_CLASS_LOOKUP, name))?.[0];
     }
 
+    async queryClassLibraryDir(): Promise<string | undefined> {
+        return (await this.query(QuerySelector.CLASS_LIBRARY_DIR))?.[0];
+    }
+
     dispose(): void {
         this.runtime.kill();
         this.postEmitter.dispose();

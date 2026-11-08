@@ -11,7 +11,7 @@ import {
     ScMethodSide,
     ScService,
 } from "../common/protocol";
-import { SclangWasmRuntime } from "./sclang-wasm-runtime";
+import { EmscriptenFS, SclangWasmRuntime } from "./sclang-wasm-runtime";
 import { ScServiceCore } from "../common/sc-service-core";
 import { ScsynthWasm } from "./scsynth-wasm";
 
@@ -33,6 +33,14 @@ export class ScServiceBrowser implements ScService {
 
     get serverTransport(): ScsynthWasm {
         return this.scsynth;
+    }
+
+    get sclangFs(): EmscriptenFS | undefined {
+        return this.runtime.fs;
+    }
+
+    get onSclangFsReady() {
+        return this.runtime.onFsReady;
     }
 
     // run this only after everything has been constructed b/c we rely on the injection
@@ -93,6 +101,9 @@ export class ScServiceBrowser implements ScService {
     }
     queryEnvClass(text: string): Promise<string | undefined> {
         return this.core.queryEnvClass(text);
+    }
+    queryClassLibraryDir(): Promise<string | undefined> {
+        return this.core.queryClassLibraryDir();
     }
 
     // rpc stuff - not applicable here...

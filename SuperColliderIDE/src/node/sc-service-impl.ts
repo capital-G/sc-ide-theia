@@ -96,4 +96,7 @@ export class ScServiceImpl
     queryEnvClass(text: string): Promise<string | undefined> {
         return this.core.queryEnvClass(text);
     }
+    queryClassLibraryDir(): Promise<string | undefined> {
+        return this.core.queryClassLibraryDir();
+    }
 }
