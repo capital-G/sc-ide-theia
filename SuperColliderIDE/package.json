@@ -6,6 +6,7 @@
   "version": "0.0.0",
   "files": [
     "lib",
+    "resources",
     "src"
   ],
   "dependencies": {

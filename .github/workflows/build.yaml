@@ -52,5 +52,19 @@ jobs:
       - name: Run browser build
         run: npm run build:browser
 
-      - name: Run electron build
-        run: npm run build:electron
+      - name: Package electron app
+        run: npm run package:electron
+        env:
+          # no certificates available yet, so do not attempt to sign
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload electron app
+        uses: actions/upload-artifact@v7
+        with:
+          name: SuperCollider-IDE-${{ runner.os }}
+          path: |
+            electron-app/dist/*.dmg
+            electron-app/dist/*.zip
+            electron-app/dist/*.exe
+            electron-app/dist/*.AppImage
+          if-no-files-found: error

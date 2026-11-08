@@ -1,0 +1,46 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <desc>SuperCollider Icon SVG - Batuhan Bozkurt 2012 (squircle variant)</desc>
+    <defs>
+        <!-- Unit squircle (superellipse, n = 4) centered at 0,0 with "radius" 1 -->
+        <path id="squircle" d="M0,-1 C0.91,-1 1,-0.91 1,0 C1,0.91 0.91,1 0,1 C-0.91,1 -1,0.91 -1,0 C-1,-0.91 -0.91,-1 0,-1 Z"/>
+    </defs>
+    <linearGradient id="fcirc0" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop stop-color="rgb(0,0,0)" offset="0%"/>
+        <stop stop-color="rgb(255,255,255)" offset="100%"/>
+    </linearGradient>
+    <linearGradient id="fcirc1" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop stop-color="rgb(13,13,13)" offset="0%"/>
+        <stop stop-color="rgb(255,255,255)" offset="100%"/>
+    </linearGradient>
+    <linearGradient id="fcirc2" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop stop-color="rgb(25,25,25)" offset="0%"/>
+        <stop stop-color="rgb(255,255,255)" offset="100%"/>
+    </linearGradient>
+    <linearGradient id="fcirc3" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop stop-color="rgb(38,38,38)" offset="0%"/>
+        <stop stop-color="rgb(255,255,255)" offset="100%"/>
+    </linearGradient>
+    <linearGradient id="fcirc4" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop stop-color="rgb(51,51,51)" offset="0%"/>
+        <stop stop-color="rgb(255,255,255)" offset="100%"/>
+    </linearGradient>
+    <linearGradient id="fcirc5" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop stop-color="rgb(64,64,64)" offset="0%"/>
+        <stop stop-color="rgb(255,255,255)" offset="100%"/>
+    </linearGradient>
+    <linearGradient id="fcirc6" x1="50%" y1="0%" x2="50%" y2="100%">
+        <stop stop-color="rgb(77,77,77)" offset="0%"/>
+        <stop stop-color="rgb(255,255,255)" offset="100%"/>
+    </linearGradient>
+    <g transform="translate(512,512)">
+        <use id="circ0" xlink:href="#squircle" fill="url(#fcirc0)" transform="rotate(0) scale(460.8)"/>
+        <use id="circ1" xlink:href="#squircle" fill="url(#fcirc1)" transform="rotate(54) scale(391.68)"/>
+        <use id="circ2" xlink:href="#squircle" fill="url(#fcirc2)" transform="rotate(108) scale(322.56)"/>
+        <use id="circ3" xlink:href="#squircle" fill="url(#fcirc3)" transform="rotate(162) scale(253.44)"/>
+        <use id="circ4" xlink:href="#squircle" fill="url(#fcirc4)" transform="rotate(216) scale(184.32)"/>
+        <use id="circ5" xlink:href="#squircle" fill="url(#fcirc5)" transform="rotate(270) scale(115.2)"/>
+        <use id="circ6" xlink:href="#squircle" fill="url(#fcirc6)" transform="rotate(324) scale(46.08)"/>
+    </g>
+</svg>

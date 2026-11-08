@@ -4,4 +4,6 @@ lib
 *.log
 *-app/*
 !*-app/package.json
+!electron-app/electron-builder.config.js
+!electron-app/scripts/
 .DS_Store

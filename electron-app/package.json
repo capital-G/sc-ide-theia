@@ -2,7 +2,7 @@
   "private": true,
   "name": "electron-app",
   "version": "0.0.0",
-  "main": "lib/backend/electron-main.js",
+  "main": "scripts/electron-main.js",
   "dependencies": {
     "@theia/core": "1.74.1",
     "@theia/editor": "1.74.1",
@@ -24,11 +24,13 @@
   },
   "devDependencies": {
     "@theia/cli": "1.74.1",
-    "electron": "42.3.0"
+    "electron": "42.3.0",
+    "electron-builder": "26.18.0"
   },
   "scripts": {
     "bundle": "npm run rebuild && npm run download:plugins && theia build --mode development",
     "download:plugins": "theia download:plugins",
+    "package": "npm run bundle && electron-builder --config electron-builder.config.js --publish never",
     "rebuild": "theia rebuild:electron --cacheRoot ..",
     "start": "theia start --plugins=local-dir:plugins",
     "watch": "npm run rebuild && theia build --watch --mode development"

@@ -48,6 +48,7 @@ import {
 } from "./sc-class-library-locator";
 import { QuickFileSelectService } from "@theia/file-search/lib/browser/quick-file-select-service";
 import { ScQuickFileSelectService } from "./sc-quick-file-select";
+import { ScFaviconContribution } from "./sc-favicon";
 import {
     ScFileLangPathResolver,
     ScLangPathResolver,
@@ -79,6 +80,9 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(FrontendApplicationContribution).toService(ScStatusBarContribution);
     bind(ScColorContribution).toSelf().inSingletonScope();
     bind(ColorContribution).toService(ScColorContribution);
+
+    bind(ScFaviconContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(ScFaviconContribution);
 
     // the wasm frontend-only module rebinds these to its MEMFS
     bind(ScLangPathResolver).to(ScFileLangPathResolver).inSingletonScope();
