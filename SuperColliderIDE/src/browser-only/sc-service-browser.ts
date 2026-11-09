@@ -7,6 +7,8 @@ import {
     InterpreterState,
     ScArg,
     ScClient,
+    ScDefinitionKind,
+    ScLocation,
     ScMethodRef,
     ScMethodSide,
     ScService,
@@ -104,6 +106,14 @@ export class ScServiceBrowser implements ScService {
     }
     queryClassLibraryDir(): Promise<string | undefined> {
         return this.core.queryClassLibraryDir();
+    }
+    queryDefinition(
+        kind: ScDefinitionKind,
+        name: string,
+        receiver?: string,
+        side?: ScMethodSide,
+    ): Promise<ScLocation[]> {
+        return this.core.queryDefinition(kind, name, receiver, side);
     }
 
     // rpc stuff - not applicable here...

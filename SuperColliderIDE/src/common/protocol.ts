@@ -43,6 +43,21 @@ export interface ScMethodRef {
     ownerClass: string;
     isClassMethod: boolean;
 }
+/** a source location reported by sclang */
+export interface ScLocation {
+    path: string;
+    /** 0-based byte offset into the file, see `Method.charPos` */
+    charPos: number;
+}
+/**
+ * * class: the class definition
+ * * classImpl: the class definition and all its methods (incl. extensions)
+ * * method: the responding method of the receiver, or all implementations if unknown
+ * * methodImpl: all implementations of the method name
+ * * references: all methods referencing the symbol
+ */
+export type ScDefinitionKind =
+    "class" | "classImpl" | "method" | "methodImpl" | "references";
 /** Lazily obtained from the language */
 export type ScMethodSide = "class" | "instance";
 export const SC_QUERY_LIMIT = 50;
@@ -58,6 +73,8 @@ export enum QuerySelector {
     ENV_CLASS_LOOKUP = "envClass",
     // ~theiaIde.("classLibDir") - path in sclang's own filesystem
     CLASS_LIBRARY_DIR = "classLibDir",
+    // ~theiaIde.("definition", kind, name, receiverClass ?? "", side ?? "")
+    DEFINITION_LOOKUP = "definition",
 }
 
 /**
@@ -85,6 +102,13 @@ export interface ScService extends RpcServer<ScClient> {
     queryEnvClass(text: string): Promise<string | undefined>;
     /** path of the class library within sclang's filesystem */
     queryClassLibraryDir(): Promise<string | undefined>;
+    /** source locations for go to definition/implementations/references */
+    queryDefinition(
+        kind: ScDefinitionKind,
+        name: string,
+        receiver?: string,
+        side?: ScMethodSide,
+    ): Promise<ScLocation[]>;
 }
 
 export interface ScClient {

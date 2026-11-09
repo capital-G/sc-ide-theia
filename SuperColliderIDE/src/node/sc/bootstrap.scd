@@ -89,6 +89,92 @@
 	val.isNil.if([], { [val.class.name.asString] });
 };
 
+// source locations for go to definition/implementations/references,
+// modeled after the lookup and references dialogs of the Qt IDE.
+// A reply has to fit into a single udp datagram (9216 bytes on macOS),
+// so we stop adding rows before that.
+~theiaMaxReplyBytes = 7000;
+
+// maps classes/methods to rows of `path\tcharPos`, where charPos is
+// a 0-based byte offset into the file
+~theiaLocationRows = {|defs|
+	var rows = [];
+	var bytes = 0;
+	var seen = Set.new;
+	defs.do({|def|
+		var path = def.filenameSymbol;
+		var row;
+		path.notNil.if({
+			row = "%\t%".format(path, def.charPos);
+			(seen.includes(row).not and: {(bytes + row.size) < ~theiaMaxReplyBytes}).if({
+				seen.add(row);
+				rows = rows.add(row);
+				// osc pads strings to 4 bytes
+				bytes = bytes + row.size + 4;
+			});
+		});
+	});
+	rows;
+};
+
+// all implementations of a method name, both class and instance side
+~theiaMethodsNamed = {|name|
+	var methods = [];
+	name = name.asSymbol;
+	Class.allClasses.do({|c|
+		c.methods.do({|m|
+			(m.name == name).if({
+				methods = methods.add([c.name.asString.replace("Meta_", ""), m]);
+			});
+		});
+	});
+	methods.sort({|a, b| a[0] <= b[0]}).collect(_[1]);
+};
+
+~definitionLookup = {|mode, name, receiver, side|
+	var class;
+	var method;
+	switch(mode.asSymbol)
+	// the class definition itself
+	{\class} {
+		class = name.asSymbol.asClass;
+		~theiaLocationRows.(class.isNil.if({[]}, {[class]}));
+	}
+	// the class and all of its methods, including extensions
+	{\classImpl} {
+		class = name.asSymbol.asClass;
+		~theiaLocationRows.(class.isNil.if({[]}, {
+			[class] ++ (class.class.methods ? []) ++ (class.methods ? [])
+		}));
+	}
+	// the responding method if the receiver is known, otherwise all implementations
+	{\method} {
+		(receiver.size > 0).if({
+			class = receiver.asSymbol.asClass;
+		});
+		class.notNil.if({
+			(side == "class").if({class = class.class});
+			method = class.findRespondingMethodFor(name.asSymbol);
+		});
+		~theiaLocationRows.(method.notNil.if({[method]}, {~theiaMethodsNamed.(name)}));
+	}
+	{\methodImpl} {
+		~theiaLocationRows.(~theiaMethodsNamed.(name));
+	}
+	// all methods which reference the symbol, see ScIDE.findReferencesToSymbol
+	{\references} {
+		var methods = IdentitySet.new;
+		(Class.findAllReferences(name.asSymbol) ? []).do({|funcDef|
+			var home = funcDef.context.isNil.if({funcDef}, {funcDef.context.homeContext});
+			home.isKindOf(Method).if({methods.add(home)});
+		});
+		~theiaLocationRows.(methods.asArray.sort({|a, b|
+			a.ownerClass.name <= b.ownerClass.name
+		}));
+	}
+	{[]};
+};
+
 ~sendServerStateUpdate = {|server|
 	defer {
 		~theiaEmit.("/server", "state",
@@ -119,6 +205,7 @@
 			searchArgs[2] == "class",
 		)}
 		{\envClass} {~envClassLookup.(searchArgs[0])}
+		{\definition} {~definitionLookup.(*searchArgs)}
 		{\classLibDir} {[Platform.classLibraryDir]};
 	// reply could be empty on unknown lookup
 	~theiaEmit.("/reply", *([id] ++ (reply ? [])));

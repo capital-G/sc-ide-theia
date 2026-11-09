@@ -3,6 +3,8 @@ import {
     InterpreterState,
     QuerySelector,
     ScArg,
+    ScDefinitionKind,
+    ScLocation,
     ScMethodRef,
     ScMethodSide,
 } from "./protocol";
@@ -257,6 +259,23 @@ export class ScServiceCore {
         return (await this.query(QuerySelector.CLASS_LIBRARY_DIR))?.[0];
     }
 
+    async queryDefinition(
+        kind: ScDefinitionKind,
+        name: string,
+        receiver?: string,
+        side?: ScMethodSide,
+    ): Promise<ScLocation[]> {
+        return decodeLocationRows(
+            await this.query(
+                QuerySelector.DEFINITION_LOOKUP,
+                kind,
+                name,
+                receiver ?? "",
+                side ?? "",
+            ),
+        );
+    }
+
     dispose(): void {
         this.runtime.kill();
         this.postEmitter.dispose();
@@ -290,6 +309,22 @@ export function decodeArgRows(rows: string[] | undefined): ScArg[] | undefined {
             ? { name: row }
             : { name: row.slice(0, eq), default: row.slice(eq + 1) };
     });
+}
+
+// maps to `path\tcharPos`
+export function decodeLocationRows(rows: string[] | undefined): ScLocation[] {
+    return (
+        rows?.flatMap((row) => {
+            const tab = row.lastIndexOf("\t");
+            const path = row.slice(0, tab);
+            const rawPos = row.slice(tab + 1);
+            if (tab <= 0 || !/^\d+$/.test(rawPos)) {
+                return [];
+            }
+            const charPos = Number(rawPos);
+            return { path, charPos };
+        }) ?? []
+    );
 }
 
 /** decode a raw OSC message */
