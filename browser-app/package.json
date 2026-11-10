@@ -3,6 +3,7 @@
   "name": "browser-app",
   "version": "0.0.0",
   "dependencies": {
+    "@theia/collaboration": "1.74.1",
     "@theia/core": "1.74.1",
     "@theia/editor": "1.74.1",
     "@theia/file-search": "1.74.1",

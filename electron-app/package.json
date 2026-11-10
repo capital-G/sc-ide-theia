@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "main": "scripts/electron-main.js",
   "dependencies": {
+    "@theia/collaboration": "1.74.1",
     "@theia/core": "1.74.1",
     "@theia/editor": "1.74.1",
     "@theia/electron": "1.74.1",
