@@ -105,7 +105,7 @@ export class ScDefinitionProvider implements FrontendApplicationContribution {
     }
 
     /** same strategy as the signature help: literals, classes, then ~env vars */
-    protected async resolveReceiver(
+    async resolveReceiver(
         receiver: string | undefined,
     ): Promise<{ receiver?: string; side?: ScMethodSide }> {
         if (!receiver) {

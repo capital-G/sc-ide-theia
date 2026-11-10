@@ -2,7 +2,7 @@
  * Generated using theia-extension-generator
  */
 import "../../src/browser/style/index.css";
-import { ScCommandContribution } from "./sc-contribution";
+import { ScCommandContribution, ScStopServer } from "./sc-contribution";
 import {
     CommandContribution,
     PreferenceContribution,
@@ -33,6 +33,15 @@ import { ScPreferenceContribution } from "./sc-preferences";
 import { ScDefaultLanguage } from "./sc-default-language";
 import { ScAutocomplete } from "./sc-autocomplete";
 import { ScDefinitionProvider } from "./sc-definition";
+import {
+    SC_HELP_WIDGET_ID,
+    ScBackendHelpTransport,
+    ScHelpKeyCommands,
+    ScHelpTransport,
+    ScHelpWidget,
+} from "./sc-help-widget";
+import { ScHelpViewContribution } from "./sc-help-contribution";
+import { TabBarToolbarContribution } from "@theia/core/lib/browser/shell/tab-bar-toolbar";
 import { ScStatusBarContribution } from "./sc-statusbar";
 import { ScServerStatus } from "./sc-server-status";
 import { ScServerWatcherClientImpl } from "./sc-server-watcher-client-impl";
@@ -102,6 +111,19 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
             createWidget: () => createScClassLibraryWidget(ctx.container),
         }))
         .inSingletonScope();
+    // help browser, the wasm frontend-only module rebinds the transport to its service worker
+    bind(ScHelpTransport).to(ScBackendHelpTransport).inSingletonScope();
+    bind(ScHelpKeyCommands).toConstantValue({ stop: ScStopServer.id });
+    bind(ScHelpWidget).toSelf();
+    bind(WidgetFactory)
+        .toDynamicValue((ctx) => ({
+            id: SC_HELP_WIDGET_ID,
+            createWidget: () => ctx.container.get(ScHelpWidget),
+        }))
+        .inSingletonScope();
+    bindViewContribution(bind, ScHelpViewContribution);
+    bind(TabBarToolbarContribution).toService(ScHelpViewContribution);
+
     bind(ScQuickFileSelectService).toSelf().inSingletonScope();
     (isBound(QuickFileSelectService) ? rebind : bind)(
         QuickFileSelectService,

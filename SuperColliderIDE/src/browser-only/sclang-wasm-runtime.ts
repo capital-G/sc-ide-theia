@@ -20,6 +20,8 @@ interface SclangModule {
     FS: EmscriptenFS;
     addFile(path: string, content: Uint8Array): void;
     makeDir(path: string): void;
+    /** mounts `sclang-help.data` at /sc/HelpSource - idempotent, rejects so it can be retried */
+    loadDocs(): Promise<void>;
 }
 
 /**
@@ -40,6 +42,8 @@ export interface EmscriptenFS {
 
 type SclangFactory = (cfg: {
     locateFile(path: string): string;
+    /** starts downloading the help files while the class library compiles */
+    preloadDocs?: boolean;
 }) => Promise<SclangModule>;
 
 export class SclangWasmRuntime implements SclangRuntime {
@@ -80,6 +84,7 @@ export class SclangWasmRuntime implements SclangRuntime {
 
         const module = await factory({
             locateFile: (path) => `${this.baseUrl}/${path}`,
+            preloadDocs: true,
         });
 
         module.printCallback = (line) => this.onLine(line);
@@ -132,6 +137,15 @@ export class SclangWasmRuntime implements SclangRuntime {
     }
 
     readonly pid = undefined;
+
+    /**
+     * Resolves once the help files are in MEMFS. Has to be awaited before
+     * anything touches `SCDoc`, as it caches an index of an empty HelpSource
+     * for good. Without a module sclang can't be queried, so there's nothing to wait for.
+     */
+    loadDocs(): Promise<void> {
+        return this.module?.loadDocs() ?? Promise.resolve();
+    }
 
     /** sclang's MEMFS - only reachable once the module has been started */
     get fs(): EmscriptenFS | undefined {

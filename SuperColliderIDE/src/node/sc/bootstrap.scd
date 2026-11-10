@@ -175,6 +175,57 @@
 	{[]};
 };
 
+// help browser, modeled after ScIDE.processUrl and HelpBrowser.goTo.
+// The IDE serves SCDoc.helpTargetDir and asks to prepare each requested page,
+// which renders the schelp source on demand if the html is missing or outdated.
+// Replies are `local, path, fragment, query` w/ path relative to the help target dir,
+// or `remote, url` for anything outside of it.
+~helpTarget = {|url|
+	var root = SCDoc.helpTargetDir ++ "/";
+	var path;
+	(url.scheme == "file").if({
+		path = url.asLocalPath;
+	});
+	(path.notNil and: {path.beginsWith(root)}).if({
+		["local", path.drop(root.size), url.fragment ? "", url.query ? ""]
+	}, {
+		["remote", url.asString]
+	});
+};
+
+~helpPrepare = {|path|
+	var prepared = SCDoc.prepareHelpForURL(URI.fromLocalPath(SCDoc.helpTargetDir +/+ path));
+	prepared.isNil.if({
+		["local", "BrokenLink.html", path, ""]
+	}, {
+		~helpTarget.(prepared)
+	});
+};
+
+// deep links into the class page of the implementation if the receiver is known,
+// otherwise the same lookup as HelpBrowser.openHelpFor
+~helpFor = {|name, receiver, side|
+	var class, method, owner;
+	(receiver.size > 0).if({
+		class = receiver.asSymbol.asClass;
+	});
+	class.notNil.if({
+		(side == "class").if({class = class.class});
+		method = class.findRespondingMethodFor(name.asSymbol);
+	});
+	method.notNil.if({
+		owner = method.ownerClass;
+		~helpTarget.(URI("%/Classes/%.html#%%".format(
+			SCDoc.helpTargetUrl,
+			owner.isMetaClass.if({owner.name.asString.drop(5)}, {owner.name}),
+			owner.isMetaClass.if("*", "-"),
+			name,
+		)));
+	}, {
+		~helpTarget.(URI(SCDoc.findHelpFile(name.asString)));
+	});
+};
+
 ~sendServerStateUpdate = {|server|
 	defer {
 		~theiaEmit.("/server", "state",
@@ -192,21 +243,30 @@
 
 
 ~theiaIDE = {|id, selector ... searchArgs|
-	var reply = switch(selector)
-		{\class} {~classLookup.(*searchArgs)}
-		{\method} {~methodLookup.(
-			searchArgs[0],
-			(searchArgs[1].asString.size>0).if(searchArgs[1], nil),
-			searchArgs[2] == "class"
-		)}
-		{\args} {~argsLookup.(
-			searchArgs[0],
-			searchArgs[1],
-			searchArgs[2] == "class",
-		)}
-		{\envClass} {~envClassLookup.(searchArgs[0])}
-		{\definition} {~definitionLookup.(*searchArgs)}
-		{\classLibDir} {[Platform.classLibraryDir]};
+	var reply = try {
+		switch(selector)
+			{\class} {~classLookup.(*searchArgs)}
+			{\method} {~methodLookup.(
+				searchArgs[0],
+				(searchArgs[1].asString.size>0).if(searchArgs[1], nil),
+				searchArgs[2] == "class"
+			)}
+			{\args} {~argsLookup.(
+				searchArgs[0],
+				searchArgs[1],
+				searchArgs[2] == "class",
+			)}
+			{\envClass} {~envClassLookup.(searchArgs[0])}
+			{\definition} {~definitionLookup.(*searchArgs)}
+			{\helpPrepare} {~helpPrepare.(searchArgs[0])}
+			{\helpFor} {~helpFor.(*searchArgs)}
+			{\classLibDir} {[Platform.classLibraryDir]}
+			{\helpTargetDir} {[SCDoc.helpTargetDir]};
+	} {|err|
+		// reply anyways, otherwise the IDE waits until the timeout
+		err.reportError;
+		nil;
+	};
 	// reply could be empty on unknown lookup
 	~theiaEmit.("/reply", *([id] ++ (reply ? [])));
 };

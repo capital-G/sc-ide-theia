@@ -15,6 +15,7 @@ import {
 } from "../common/protocol";
 import { EmscriptenFS, SclangWasmRuntime } from "./sclang-wasm-runtime";
 import { ScServiceCore } from "../common/sc-service-core";
+import { ScHelpTarget } from "../common/sc-help";
 import { ScsynthWasm } from "./scsynth-wasm";
 
 @injectable()
@@ -114,6 +115,29 @@ export class ScServiceBrowser implements ScService {
         side?: ScMethodSide,
     ): Promise<ScLocation[]> {
         return this.core.queryDefinition(kind, name, receiver, side);
+    }
+    // both index the help files on first use, so they have to be in MEMFS beforehand
+    async prepareHelp(path: string): Promise<ScHelpTarget | undefined> {
+        // a failure ends up as error page within the help frame
+        await this.runtime.loadDocs();
+        return this.core.prepareHelp(path);
+    }
+    async queryHelpFor(
+        name: string,
+        receiver?: string,
+        side?: ScMethodSide,
+    ): Promise<ScHelpTarget | undefined> {
+        try {
+            await this.runtime.loadDocs();
+        } catch (e) {
+            console.error("Could not load the help files", e);
+            return undefined;
+        }
+        return this.core.queryHelpFor(name, receiver, side);
+    }
+    // SCDoc.helpTargetDir is a plain classvar and does not need the help files
+    queryHelpTargetDir(): Promise<string | undefined> {
+        return this.core.queryHelpTargetDir();
     }
 
     // rpc stuff - not applicable here...

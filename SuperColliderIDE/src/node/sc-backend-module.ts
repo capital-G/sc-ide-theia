@@ -11,11 +11,15 @@ import {
 import { ScServiceImpl } from "./sc-service-impl";
 import { BackendApplicationContribution } from "@theia/core/lib/node";
 import { ScServerWatcherServiceImpl } from "./sc-server-watcher-service-impl";
+import { ScHelpRoute } from "./sc-help-route";
 
 export default new ContainerModule((bind) => {
     bind(ScServiceImpl).toSelf().inSingletonScope();
     bind(ScService).toService(ScServiceImpl);
     bind(BackendApplicationContribution).toService(ScServiceImpl);
+
+    bind(ScHelpRoute).toSelf().inSingletonScope();
+    bind(BackendApplicationContribution).toService(ScHelpRoute);
 
     bind(ScServerWatcherServiceImpl).toSelf().inSingletonScope();
     bind(ScServerWatcherService).toService(ScServerWatcherServiceImpl);

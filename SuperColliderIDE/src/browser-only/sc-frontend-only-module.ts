@@ -5,6 +5,8 @@ import { ScServerWatcherBrowser } from "./sc-server-watcher-browser";
 import { FileServiceContribution } from "@theia/filesystem/lib/browser/file-service";
 import { ScLangPathResolver } from "../browser/sc-lang-path-resolver";
 import { ScClassLibraryLocator } from "../browser/sc-class-library-locator";
+import { ScHelpTransport } from "../browser/sc-help-widget";
+import { ScServiceWorkerHelpTransport } from "./sc-help-sw-bridge";
 import {
     ScMemfsClassLibraryLocator,
     ScMemfsLangPathResolver,
@@ -24,6 +26,10 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(ScMemfsLangPathResolver).toSelf().inSingletonScope();
     (isBound(ScLangPathResolver) ? rebind : bind)(ScLangPathResolver).toService(
         ScMemfsLangPathResolver,
+    );
+    bind(ScServiceWorkerHelpTransport).toSelf().inSingletonScope();
+    (isBound(ScHelpTransport) ? rebind : bind)(ScHelpTransport).toService(
+        ScServiceWorkerHelpTransport,
     );
     bind(ScMemfsClassLibraryLocator).toSelf().inSingletonScope();
     (isBound(ScClassLibraryLocator) ? rebind : bind)(

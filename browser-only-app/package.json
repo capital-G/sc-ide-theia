@@ -21,7 +21,7 @@
     "bundle": "theia build --mode development && npm run assets",
     "bundle:prod": "theia build --mode production && npm run assets",
     "watch": "theia build --watch --mode development",
-    "assets": "mkdir -p lib/frontend/sc && cp wasm/sclang.js wasm/sclang.wasm wasm/sclang.data wasm/scsynth.js wasm/scsynth.wasm lib/frontend/sc/ && cp serve.json lib/frontend/"
+    "assets": "mkdir -p lib/frontend/sc && cp wasm/sclang.js wasm/sclang.wasm wasm/sclang.data wasm/sclang-help.data wasm/sclang-help.js.metadata wasm/scsynth.js wasm/scsynth.wasm lib/frontend/sc/ && cp serve.json ../SuperColliderIDE/resources/sc-help-sw.js lib/frontend/"
   },
   "theia": {
     "target": "browser-only",

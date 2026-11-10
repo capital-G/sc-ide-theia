@@ -1,5 +1,6 @@
 import { RpcServer } from "@theia/core";
 import { ScTheiaMessage } from "./sc-service-core";
+import { ScHelpTarget } from "./sc-help";
 
 export const SC_SERVICE_PATH = "/services/supercollider";
 export const SC_SERVER_WATCHER_PATH = "/services/scserverwatcher";
@@ -75,6 +76,12 @@ export enum QuerySelector {
     CLASS_LIBRARY_DIR = "classLibDir",
     // ~theiaIde.("definition", kind, name, receiverClass ?? "", side ?? "")
     DEFINITION_LOOKUP = "definition",
+    // ~theiaIde.("helpPrepare", path) - path relative to SCDoc.helpTargetDir
+    HELP_PREPARE = "helpPrepare",
+    // ~theiaIde.("helpFor", name, receiverClass ?? "", side ?? "")
+    HELP_FOR = "helpFor",
+    // ~theiaIde.("helpTargetDir") - path in sclang's own filesystem
+    HELP_TARGET_DIR = "helpTargetDir",
 }
 
 /**
@@ -109,6 +116,16 @@ export interface ScService extends RpcServer<ScClient> {
         receiver?: string,
         side?: ScMethodSide,
     ): Promise<ScLocation[]>;
+    /** renders the help page on demand, see `SCDoc.prepareHelpForURL` */
+    prepareHelp(path: string): Promise<ScHelpTarget | undefined>;
+    /** help page for a class or method, see `HelpBrowser.openHelpFor` */
+    queryHelpFor(
+        name: string,
+        receiver?: string,
+        side?: ScMethodSide,
+    ): Promise<ScHelpTarget | undefined>;
+    /** path of `SCDoc.helpTargetDir` within sclang's filesystem */
+    queryHelpTargetDir(): Promise<string | undefined>;
 }
 
 export interface ScClient {

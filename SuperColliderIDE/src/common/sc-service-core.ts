@@ -9,6 +9,7 @@ import {
     ScMethodSide,
 } from "./protocol";
 import { SC_BOOTSTRAP } from "./sc-bootstrap";
+import { SC_HELP_TIMEOUT_MS, ScHelpTarget, decodeHelpTarget } from "./sc-help";
 import { SC_REPLY_ADDRESS } from "./protocol";
 import OSC from "osc-js";
 
@@ -193,17 +194,23 @@ export class ScServiceCore {
         });
     }
 
-    // protect such that the query payload does not terminate a string
-    private static readonly SAFE_ARG = /^[A-Za-z0-9_]*$/;
-
     async query(
         selector: QuerySelector,
         ...args: string[]
     ): Promise<string[] | undefined> {
+        return this.queryWithTimeout(selector, SC_RESOLVE_TIMEOUT_MS, args);
+    }
+
+    async queryWithTimeout(
+        selector: QuerySelector,
+        timeoutMs: number,
+        args: string[],
+    ): Promise<string[] | undefined> {
         if (this.state.kind !== "running" || !this.state.compiled) {
             return undefined;
         }
-        if (!args.every((a) => ScServiceCore.SAFE_ARG.test(a))) {
+        const literals = args.map(scStringLiteral);
+        if (literals.some((l) => l === undefined)) {
             return undefined;
         }
 
@@ -212,10 +219,10 @@ export class ScServiceCore {
             const timer = setTimeout(() => {
                 this.pending.delete(id);
                 resolve(undefined);
-            }, SC_RESOLVE_TIMEOUT_MS);
+            }, timeoutMs);
             this.pending.set(id, { resolve, timer });
             this.runtime.evaluate(
-                `~theiaIDE.(${id}, \\${selector}, "${args.join('", "')}")`,
+                `~theiaIDE.(${[id, `\\${selector}`, ...literals].join(", ")})`,
                 true,
             );
         });
@@ -276,12 +283,52 @@ export class ScServiceCore {
         );
     }
 
+    async prepareHelp(path: string): Promise<ScHelpTarget | undefined> {
+        return decodeHelpTarget(
+            await this.queryWithTimeout(
+                QuerySelector.HELP_PREPARE,
+                SC_HELP_TIMEOUT_MS,
+                [path],
+            ),
+        );
+    }
+
+    async queryHelpFor(
+        name: string,
+        receiver?: string,
+        side?: ScMethodSide,
+    ): Promise<ScHelpTarget | undefined> {
+        return decodeHelpTarget(
+            await this.queryWithTimeout(
+                QuerySelector.HELP_FOR,
+                SC_HELP_TIMEOUT_MS,
+                [name, receiver ?? "", side ?? ""],
+            ),
+        );
+    }
+
+    async queryHelpTargetDir(): Promise<string | undefined> {
+        return (await this.query(QuerySelector.HELP_TARGET_DIR))?.[0];
+    }
+
     dispose(): void {
         this.runtime.kill();
         this.postEmitter.dispose();
         this.stateEmitter.dispose();
         this.langMessageEmitter.dispose();
     }
+}
+
+/**
+ * Quotes an argument as sclang string literal, such that it can not terminate
+ * the string. Control chars are rejected as the node runtime uses them to
+ * delimit evaluations on stdin.
+ */
+export function scStringLiteral(arg: string): string | undefined {
+    if (/[\x00-\x1f\x7f]/.test(arg)) {
+        return undefined;
+    }
+    return `"${arg.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 // maps to name\townerClass\tc/i

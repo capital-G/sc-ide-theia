@@ -12,6 +12,7 @@ import {
 } from "../common/protocol";
 import { SclangNodeRuntime } from "./sclang-node-runtime";
 import { ScServiceCore } from "../common/sc-service-core";
+import { ScHelpTarget } from "../common/sc-help";
 import { MaybePromise } from "@theia/core";
 import { Application } from "express";
 
@@ -108,5 +109,18 @@ export class ScServiceImpl
         side?: ScMethodSide,
     ): Promise<ScLocation[]> {
         return this.core.queryDefinition(kind, name, receiver, side);
+    }
+    prepareHelp(path: string): Promise<ScHelpTarget | undefined> {
+        return this.core.prepareHelp(path);
+    }
+    queryHelpFor(
+        name: string,
+        receiver?: string,
+        side?: ScMethodSide,
+    ): Promise<ScHelpTarget | undefined> {
+        return this.core.queryHelpFor(name, receiver, side);
+    }
+    queryHelpTargetDir(): Promise<string | undefined> {
+        return this.core.queryHelpTargetDir();
     }
 }

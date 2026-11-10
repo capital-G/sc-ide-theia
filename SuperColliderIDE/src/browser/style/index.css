@@ -22,3 +22,32 @@
     font-variant-numeric: tabular-nums !important;
     font-family: var(--theia-editor-font-family, monospace) !important;
 }
+
+/* help browser */
+.sc-help {
+    display: flex;
+    flex-direction: column;
+}
+
+.sc-help-header {
+    padding: 4px var(--theia-ui-padding, 4px);
+}
+
+.sc-help-search {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sc-help-frame {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: white;
+}
+
+/* iframes swallow the mouse events while dragging a splitter or a tab */
+body.lm-mod-override-cursor .sc-help-frame,
+.lm-mod-drag-image ~ * .sc-help-frame,
+body.theia-mod-dragging .sc-help-frame {
+    pointer-events: none;
+}
