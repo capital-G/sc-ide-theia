@@ -426,12 +426,14 @@ function toThemeJson(t: ScTheme): object {
     const text = fm.text;
     const bg = text.bg!;
     const fg = text.fg!;
-    // the Qt IDE takes the window chrome from the OS palette, approximate it from the editor colors
     const uiFg = fm.postwindowtext.fg ?? fg;
-    const chrome = mix(bg, t.dark ? WHITE : BLACK, 0.06);
-    const border = mix(bg, uiFg, 0.2);
-    const muted = mix(uiFg, bg, 0.4);
-    const hover = mix(bg, uiFg, 0.08);
+    // the Qt IDE takes the window chrome from the OS palette, approximate it by
+    // the gutter, which is the editor background unless the theme defines one
+    const gutter = fm.lineNumbers.bg ?? bg;
+    const chrome = gutter;
+    const border = mix(chrome, uiFg, 0.2);
+    const muted = mix(uiFg, chrome, 0.4);
+    const hover = mix(chrome, uiFg, 0.08);
     const selection = highlight(fm.selection, text) ?? mix(bg, fg, 0.25);
     const search = highlight(fm.searchResult, text);
     const rainbow = [fm.class.fg, fm.number.fg, fm["env-var"].fg].map(
@@ -454,7 +456,7 @@ function toThemeJson(t: ScTheme): object {
         "editorLineNumber.activeForeground": fm.lineNumbers.bg
             ? fm.lineNumbers.fg
             : fg,
-        "editorGutter.background": fm.lineNumbers.bg ?? bg,
+        "editorGutter.background": gutter,
         "editorWhitespace.foreground": fm.whitespace.fg,
         "editorBracketMatch.background": highlight(fm.matchingBrackets, text),
         "editorBracketMatch.border": "#00000000",
@@ -515,6 +517,8 @@ function toThemeJson(t: ScTheme): object {
         "editorGroupHeader.tabsBackground": chrome,
         "editorGroupHeader.tabsBorder": border,
         "tab.activeBackground": bg,
+        // the chrome may equal the editor background, so mark the active tab
+        "tab.activeBorderTop": t.accent,
         "tab.activeForeground": uiFg,
         "tab.inactiveBackground": chrome,
         "tab.inactiveForeground": muted,
