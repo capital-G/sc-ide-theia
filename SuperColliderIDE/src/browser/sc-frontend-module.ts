@@ -33,6 +33,7 @@ import { ScPreferenceContribution } from "./sc-preferences";
 import { ScDefaultLanguage } from "./sc-default-language";
 import { ScAutocomplete } from "./sc-autocomplete";
 import { ScDefinitionProvider } from "./sc-definition";
+import { ScOutlineProvider } from "./sc-outline";
 import {
     SC_HELP_WIDGET_ID,
     ScBackendHelpTransport,
@@ -89,6 +90,8 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(FrontendApplicationContribution).toService(ScAutocomplete);
     bind(ScDefinitionProvider).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(ScDefinitionProvider);
+    bind(ScOutlineProvider).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(ScOutlineProvider);
     bind(FrontendApplicationContribution).toService(ScCommandContribution);
     bind(FrontendApplicationContribution).toService(ScStatusBarContribution);
     bind(ScColorContribution).toSelf().inSingletonScope();
