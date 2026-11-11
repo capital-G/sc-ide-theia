@@ -54,6 +54,11 @@ export const ScHelpSearchCommand: Command = {
     category: "sclang",
 };
 
+/** initial width of the help, the docs need some room for their code examples */
+const HELP_WIDTH = 450;
+/** below this window width the help would cover too much of the code */
+const HELP_REVEAL_MIN_WINDOW_WIDTH = 1024;
+
 /** help browser in the right side panel, like the help docklet of the Qt IDE */
 @injectable()
 export class ScHelpViewContribution
@@ -77,9 +82,22 @@ export class ScHelpViewContribution
     /**
      * Shows the help on the first visit, it is only called w/o a previous layout,
      * so a closed help stays closed afterwards.
+     * On small screens, e.g. a phone, it only gets added collapsed to the side bar.
      */
     async initializeLayout(): Promise<void> {
-        await this.openView({ activate: false, reveal: true });
+        const windowWidth = window.innerWidth;
+        const reveal = windowWidth >= HELP_REVEAL_MIN_WINDOW_WIDTH;
+        await this.openView({ activate: false, reveal: false });
+        // a collapsed panel keeps the size for when it gets expanded
+        this.shell.resize(
+            reveal
+                ? Math.max(HELP_WIDTH, Math.round(windowWidth * 0.3))
+                : Math.min(HELP_WIDTH, Math.round(windowWidth * 0.9)),
+            "right",
+        );
+        if (reveal) {
+            await this.openView({ activate: false, reveal: true });
+        }
     }
 
     override registerCommands(registry: CommandRegistry): void {
