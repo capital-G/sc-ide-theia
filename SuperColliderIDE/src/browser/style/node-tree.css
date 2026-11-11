@@ -1,0 +1,294 @@
+/* node tree */
+.sc-node-tree {
+    display: flex;
+    flex-direction: column;
+    background: var(--theia-editor-background);
+    color: var(--theia-foreground);
+}
+
+.sc-node-tree-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 12px;
+    padding: 4px var(--theia-ui-padding, 4px);
+    border-bottom: 1px solid var(--theia-widget-border);
+}
+
+.sc-node-tree-modes,
+.sc-node-tree-options {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sc-node-tree-modes {
+    gap: 2px;
+}
+
+.sc-node-tree-options label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--theia-descriptionForeground);
+    font-size: var(--theia-ui-font-size1);
+}
+
+.sc-node-tree-mode {
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--theia-foreground);
+    font-family: var(--theia-ui-font-family);
+    font-size: var(--theia-ui-font-size1);
+    cursor: pointer;
+}
+
+.sc-node-tree-mode:hover {
+    background: var(--theia-list-hoverBackground);
+}
+
+.sc-node-tree-mode.active {
+    background: var(--theia-button-background);
+    color: var(--theia-button-foreground);
+}
+
+.sc-node-tree-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+.sc-node-tree-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    text-align: center;
+    color: var(--theia-descriptionForeground);
+}
+
+.sc-node-tree-body > [hidden] {
+    display: none !important;
+}
+
+/* boxes, like s.plotTree */
+.sc-node-tree-boxes {
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+    padding: 8px;
+}
+
+.sc-node-tree-group,
+.sc-node-tree-synth,
+.sc-node-tree-inspected {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 6px 6px;
+    border: 1px solid var(--theia-widget-border);
+    border-radius: 4px;
+}
+
+.sc-node-tree-group {
+    background: color-mix(in srgb, var(--theia-foreground) 3%, transparent);
+}
+
+.sc-node-tree-synth {
+    background: var(--theia-editor-background);
+    border-left: 3px solid var(--theia-focusBorder);
+}
+
+.sc-node-tree-synth.paused {
+    opacity: 0.55;
+    border-left-style: dashed;
+}
+
+.sc-node-tree-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 20px;
+}
+
+.sc-node-tree-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--theia-code-font-family);
+}
+
+.sc-node-tree-group > .sc-node-tree-header .sc-node-tree-title {
+    color: var(--theia-descriptionForeground);
+}
+
+.sc-node-tree-actions {
+    display: flex;
+    gap: 2px;
+    opacity: 0.5;
+}
+
+.sc-node-tree-header:hover .sc-node-tree-actions,
+.sc-node-tree-inspected .sc-node-tree-actions {
+    opacity: 1;
+}
+
+.sc-node-tree-action {
+    padding: 2px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--theia-foreground);
+    cursor: pointer;
+}
+
+.sc-node-tree-action:hover {
+    background: var(
+        --theia-toolbar-hoverBackground,
+        var(--theia-list-hoverBackground)
+    );
+}
+
+/* label/value pairs, wrapping w/ the width of the box */
+.sc-node-tree-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px 12px;
+}
+
+.sc-node-tree-control {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.sc-node-tree-control label {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--theia-descriptionForeground);
+    font-size: var(--theia-ui-font-size1);
+}
+
+.sc-node-tree-value {
+    width: 72px;
+    padding: 1px 4px;
+    font-family: var(--theia-code-font-family);
+}
+
+.sc-node-tree-mapped {
+    font-family: var(--theia-code-font-family);
+    color: var(--theia-textLink-foreground);
+}
+
+.sc-node-tree-no-controls,
+.sc-node-tree-hint {
+    color: var(--theia-descriptionForeground);
+    font-size: var(--theia-ui-font-size1);
+}
+
+/* graph */
+.sc-node-tree-graph-view {
+    position: absolute;
+    inset: 0;
+    display: flex;
+}
+
+.sc-node-tree-graph {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.sc-node-tree-graph > div:first-child {
+    position: absolute;
+    inset: 0;
+}
+
+.sc-node-tree-graph svg.sprotty-graph {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: var(--theia-editor-background);
+}
+
+.sc-node-tree-inspector {
+    width: 240px;
+    flex-shrink: 0;
+    overflow: auto;
+    padding: 8px;
+    border-left: 1px solid var(--theia-widget-border);
+}
+
+/* one control per line in the narrow inspector */
+.sc-node-tree-inspector .sc-node-tree-controls {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.sc-node-tree-inspector .sc-node-tree-control label {
+    flex: 1;
+    max-width: none;
+}
+
+.sc-graph-box {
+    fill: var(--theia-editor-background);
+    stroke: var(--theia-widget-border);
+    stroke-width: 1;
+}
+
+.sc-graph-group .sc-graph-box {
+    fill: color-mix(
+        in srgb,
+        var(--theia-foreground) 5%,
+        var(--theia-editor-background)
+    );
+}
+
+.sc-graph-synth .sc-graph-box {
+    stroke: var(--theia-focusBorder);
+}
+
+.sc-graph-paused {
+    opacity: 0.55;
+}
+
+.sc-graph-node.mouseover .sc-graph-box {
+    stroke-width: 2;
+}
+
+.sc-graph-node.selected .sc-graph-box {
+    stroke: var(--theia-focusBorder);
+    stroke-width: 2.5;
+}
+
+.sc-node-tree-graph .sprotty-label {
+    fill: var(--theia-foreground);
+    font-family: var(--theia-code-font-family);
+    font-size: 12px;
+    stroke-width: 0;
+}
+
+.sc-node-tree-graph .sprotty-label.title {
+    font-weight: 600;
+}
+
+.sc-node-tree-graph .sprotty-label.control {
+    fill: var(--theia-descriptionForeground);
+    font-size: 11px;
+}
+
+.sc-node-tree-graph .sprotty-edge {
+    fill: none;
+    stroke: var(--theia-descriptionForeground);
+    stroke-width: 1;
+}

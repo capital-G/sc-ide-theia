@@ -263,26 +263,21 @@ export class ScCommandContribution
             isEnabled: () => false,
         });
 
-        registry.registerCommand(ScDumpNodeTree, {
-            execute: () => {
-                // @todo
-            },
-            isEnabled: () => false,
+        // posts the tree into the post window, like the Qt IDE
+        const dumpNodeTree = (controls: boolean) => ({
+            execute: () =>
+                this.scService.evaluate(
+                    `Server.default.queryAllNodes(${controls})`,
+                    true,
+                ),
+            isEnabled: () => this.client.state.kind === "running",
         });
-
-        registry.registerCommand(ScDumpNodeTreeWithControls, {
-            execute: () => {
-                // @todo
-            },
-            isEnabled: () => false,
-        });
-
-        registry.registerCommand(ScShowNodeTree, {
-            execute: () => {
-                // @todo
-            },
-            isEnabled: () => false,
-        });
+        registry.registerCommand(ScDumpNodeTree, dumpNodeTree(false));
+        registry.registerCommand(
+            ScDumpNodeTreeWithControls,
+            dumpNodeTree(true),
+        );
+        // ScShowNodeTree: see ScNodeTreeContribution
 
         registry.registerCommand(ScServerDumpOSC, {
             execute: () => {

@@ -20,7 +20,12 @@ export class BrowserStatusTransport implements ScStatusTransport {
         this.scsynth.sendOsc(BrowserStatusTransport.OSC_STATUS_MESSAGE);
     }
 
+    send(bytes: Uint8Array): void {
+        this.scsynth.sendOsc(bytes);
+    }
+
     dispose(): void {
+        this.sub.dispose();
         this.emitter.dispose();
     }
 }

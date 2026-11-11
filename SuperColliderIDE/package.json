@@ -19,7 +19,10 @@
     "@theia/output": "1.74.1",
     "@theia/preferences": "1.74.1",
     "@theia/workspace": "1.74.1",
+    "elkjs": "^0.8.2",
     "osc-js": "^2.4.1",
+    "sprotty": "^1.4.0",
+    "sprotty-elk": "^1.4.0",
     "yaml": "^2.9.0"
   },
   "devDependencies": {

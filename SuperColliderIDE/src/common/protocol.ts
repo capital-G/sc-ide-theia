@@ -2,6 +2,7 @@ import { RpcServer } from "@theia/core";
 import { ScTheiaMessage } from "./sc-service-core";
 import { ScHelpTarget } from "./sc-help";
 import { ScLaunchOptions } from "./sc-language-config";
+import { ScGroupNode } from "./sc-node-tree";
 
 export const SC_SERVICE_PATH = "/services/supercollider";
 export const SC_SERVER_WATCHER_PATH = "/services/scserverwatcher";
@@ -162,4 +163,13 @@ export interface ScServerWatcherClient {
 /** lives on backend, frontend calls it */
 export interface ScServerWatcherService extends RpcServer<ScServerWatcherClient> {
     startWatching(host: string, port: number): void;
+    /** the node tree of the watched server, undefined w/o an answer */
+    queryTree(controls: boolean): Promise<ScGroupNode | undefined>;
+    setControl(id: number, name: string, value: number): Promise<void>;
+    /** pauses or resumes a node */
+    runNode(id: number, run: boolean): Promise<void>;
+    /** frees a node, a group incl. its children */
+    freeNode(id: number): Promise<void>;
+    /** frees the children of a group */
+    freeAll(groupId: number): Promise<void>;
 }

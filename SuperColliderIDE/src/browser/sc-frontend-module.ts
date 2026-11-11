@@ -79,6 +79,11 @@ import {
     ScLanguageSettingsWidget,
 } from "./sc-language-settings-widget";
 import { ScLanguageSettingsContribution } from "./sc-language-settings-contribution";
+import {
+    SC_NODE_TREE_WIDGET_ID,
+    ScNodeTreeWidget,
+} from "./node-tree/sc-node-tree-widget";
+import { ScNodeTreeContribution } from "./node-tree/sc-node-tree-contribution";
 
 export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(ScClientImpl).toSelf().inSingletonScope();
@@ -202,4 +207,14 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(FrontendApplicationContribution).toService(
         ScLanguageSettingsContribution,
     );
+
+    // node tree of the server, both builds
+    bind(ScNodeTreeWidget).toSelf();
+    bind(WidgetFactory)
+        .toDynamicValue((ctx) => ({
+            id: SC_NODE_TREE_WIDGET_ID,
+            createWidget: () => ctx.container.get(ScNodeTreeWidget),
+        }))
+        .inSingletonScope();
+    bindViewContribution(bind, ScNodeTreeContribution);
 });

@@ -27,6 +27,10 @@ export class NodeStatusTransport implements ScStatusTransport {
         );
     }
 
+    send(bytes: Uint8Array): void {
+        this.udp?.send(bytes, this.host, this.port);
+    }
+
     dispose(): void {
         this.udp?.dispose();
         this.emitter.dispose();

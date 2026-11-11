@@ -24,7 +24,12 @@ export class SclangUdp {
         host: string,
         port: number,
     ): Promise<void> {
-        this.socket?.send(msg.pack(), port, host);
+        this.send(msg.pack(), host, port);
+    }
+
+    /** an already packed OSC message */
+    send(bytes: Uint8Array, host: string, port: number): void {
+        this.socket?.send(bytes, port, host);
     }
 
     dispose(): void {
