@@ -1,8 +1,14 @@
-import { UNTITLED_SCHEME, UntitledResourceResolver } from "@theia/core";
+import { UNTITLED_SCHEME, URI, UntitledResourceResolver } from "@theia/core";
 import { FrontendApplicationContribution } from "@theia/core/lib/browser";
-import { inject, injectable } from "@theia/core/shared/inversify";
+import { inject, injectable, optional } from "@theia/core/shared/inversify";
 import { EditorManager } from "@theia/editor/lib/browser";
 import { SC_LANGUAGE_ID } from "./sc-language-contribution";
+
+/** a persistent document to open instead of an untitled one, if available */
+export const ScScratchPad = Symbol("ScScratchPad");
+export interface ScScratchPad {
+    uri(): Promise<URI | undefined>;
+}
 
 /**
  * Sets sclang as the default language for any new document.
@@ -12,6 +18,9 @@ export class ScDefaultLanguage implements FrontendApplicationContribution {
     @inject(EditorManager) protected readonly editorManager!: EditorManager;
     @inject(UntitledResourceResolver)
     protected readonly untitled!: UntitledResourceResolver;
+    @inject(ScScratchPad)
+    @optional()
+    protected readonly scratchPad: ScScratchPad | undefined;
 
     onStart(): void {
         this.editorManager.onCreated((widget) => {
@@ -28,6 +37,11 @@ export class ScDefaultLanguage implements FrontendApplicationContribution {
     // if not, lets open a scratch pad for the user
     async onDidInitializeLayout(): Promise<void> {
         if (this.editorManager.all.length > 0) {
+            return;
+        }
+        const scratch = await this.scratchPad?.uri();
+        if (scratch) {
+            await this.editorManager.open(scratch);
             return;
         }
         const uri = this.untitled.createUntitledURI(".scd");

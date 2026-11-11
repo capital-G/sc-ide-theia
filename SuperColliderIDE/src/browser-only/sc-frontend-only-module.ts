@@ -1,5 +1,5 @@
 import { ContainerModule } from "@theia/core/shared/inversify";
-import { CommandContribution } from "@theia/core";
+import { CommandContribution, PreferenceContribution } from "@theia/core";
 import { WidgetFactory } from "@theia/core/lib/browser";
 import { ScServerWatcherService, ScService } from "../common/protocol";
 import { ScServiceBrowser } from "./sc-service-browser";
@@ -20,6 +20,13 @@ import {
     ScAudioScopeWidget,
 } from "./sc-audio-scope-widget";
 import { ScAudioScopeContribution } from "./sc-audio-scope-contribution";
+import { WorkspaceServer } from "@theia/workspace/lib/common";
+import {
+    ScBrowserOnlyPreferences,
+    ScBrowserOnlyWorkspaceServer,
+    ScWorkspaceScratchPad,
+} from "./sc-default-workspace";
+import { ScScratchPad } from "../browser/sc-default-language";
 
 export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(ScServiceBrowser).toSelf().inSingletonScope();
@@ -60,4 +67,13 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
         .inSingletonScope();
     bind(ScAudioScopeContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(ScAudioScopeContribution);
+
+    // loaded after @theia/workspace, so its browser-only server gets replaced
+    bind(ScBrowserOnlyWorkspaceServer).toSelf().inSingletonScope();
+    rebind(WorkspaceServer).toService(ScBrowserOnlyWorkspaceServer);
+    bind(ScWorkspaceScratchPad).toSelf().inSingletonScope();
+    bind(ScScratchPad).toService(ScWorkspaceScratchPad);
+    bind(PreferenceContribution)
+        .to(ScBrowserOnlyPreferences)
+        .inSingletonScope();
 });
