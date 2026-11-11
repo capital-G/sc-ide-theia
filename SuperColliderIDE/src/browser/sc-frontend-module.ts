@@ -84,6 +84,7 @@ import {
     ScNodeTreeWidget,
 } from "./node-tree/sc-node-tree-widget";
 import { ScNodeTreeContribution } from "./node-tree/sc-node-tree-contribution";
+import { ScSidebarActions } from "./sc-sidebar-actions";
 
 export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(ScClientImpl).toSelf().inSingletonScope();
@@ -217,4 +218,8 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
         }))
         .inSingletonScope();
     bindViewContribution(bind, ScNodeTreeContribution);
+
+    // buttons in the left bar, e.g. a new scope or the node tree
+    bind(ScSidebarActions).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(ScSidebarActions);
 });

@@ -194,3 +194,9 @@ body.theia-mod-dragging .sc-help-frame {
         flex-basis: 100%;
     }
 }
+
+/* buttons in the left bar, see ScSidebarActions */
+.lm-Widget.theia-sidebar-menu.sc-sidebar-actions {
+    flex-direction: column;
+    padding-bottom: 4px;
+}
