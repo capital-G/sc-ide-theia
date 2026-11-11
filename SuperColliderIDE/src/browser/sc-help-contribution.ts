@@ -1,6 +1,7 @@
 import { Command, CommandRegistry, MenuModelRegistry } from "@theia/core";
 import {
     AbstractViewContribution,
+    FrontendApplicationContribution,
     KeybindingRegistry,
 } from "@theia/core/lib/browser";
 import {
@@ -57,7 +58,7 @@ export const ScHelpSearchCommand: Command = {
 @injectable()
 export class ScHelpViewContribution
     extends AbstractViewContribution<ScHelpWidget>
-    implements TabBarToolbarContribution
+    implements TabBarToolbarContribution, FrontendApplicationContribution
 {
     @inject(ScService) protected readonly scService!: ScService;
     @inject(EditorManager) protected readonly editorManager!: EditorManager;
@@ -71,6 +72,14 @@ export class ScHelpViewContribution
             defaultWidgetOptions: { area: "right", rank: 600 },
             toggleCommandId: "supercollider.help.toggle",
         });
+    }
+
+    /**
+     * Shows the help on the first visit, it is only called w/o a previous layout,
+     * so a closed help stays closed afterwards.
+     */
+    async initializeLayout(): Promise<void> {
+        await this.openView({ activate: false, reveal: true });
     }
 
     override registerCommands(registry: CommandRegistry): void {

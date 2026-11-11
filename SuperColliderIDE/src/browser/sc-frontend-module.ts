@@ -129,6 +129,7 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
         .inSingletonScope();
     bindViewContribution(bind, ScHelpViewContribution);
     bind(TabBarToolbarContribution).toService(ScHelpViewContribution);
+    bind(FrontendApplicationContribution).toService(ScHelpViewContribution);
 
     bind(ScQuickFileSelectService).toSelf().inSingletonScope();
     (isBound(QuickFileSelectService) ? rebind : bind)(
