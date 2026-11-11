@@ -53,5 +53,16 @@ export class ScLanguageContribution implements LanguageGrammarDefinitionContribu
         });
 
         registry.mapLanguageIdToTextmateGrammar(SC_LANGUAGE_ID, SC_SCOPE);
+
+        // monaco only matches and colorizes brackets of tokens flagged as balanced,
+        // vscode defaults to all scopes but Theia flags none unless configured.
+        // chars like `$(` and quoted symbols like `'a(b'` are no string tokens though.
+        registry.registerGrammarConfiguration(SC_LANGUAGE_ID, {
+            balancedBracketSelectors: ["*"],
+            unbalancedBracketSelectors: [
+                "constant.character",
+                "constant.other.symbol",
+            ],
+        });
     }
 }

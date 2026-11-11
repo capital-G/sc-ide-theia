@@ -420,6 +420,9 @@ function toThemeJson(t: ScTheme): object {
     const hover = mix(bg, uiFg, 0.08);
     const selection = highlight(fm.selection, text) ?? mix(bg, fg, 0.25);
     const search = highlight(fm.searchResult, text);
+    const rainbow = [fm.class.fg, fm.number.fg, fm["env-var"].fg].map(
+        (c) => c ?? fg,
+    );
 
     const colors: Record<string, string | undefined> = {
         // editor
@@ -441,13 +444,13 @@ function toThemeJson(t: ScTheme): object {
         "editorWhitespace.foreground": fm.whitespace.fg,
         "editorBracketMatch.background": highlight(fm.matchingBrackets, text),
         "editorBracketMatch.border": "#00000000",
-        // scide does not colorize bracket pairs
-        "editorBracketHighlight.foreground1": fg,
-        "editorBracketHighlight.foreground2": fg,
-        "editorBracketHighlight.foreground3": fg,
-        "editorBracketHighlight.foreground4": fg,
-        "editorBracketHighlight.foreground5": fg,
-        "editorBracketHighlight.foreground6": fg,
+        // rainbow brackets, cycling through distinct colors of the palette
+        "editorBracketHighlight.foreground1": rainbow[0],
+        "editorBracketHighlight.foreground2": rainbow[1],
+        "editorBracketHighlight.foreground3": rainbow[2],
+        "editorBracketHighlight.foreground4": rainbow[0],
+        "editorBracketHighlight.foreground5": rainbow[1],
+        "editorBracketHighlight.foreground6": rainbow[2],
         "editorBracketHighlight.unexpectedBracket.foreground":
             fm.postwindowerror.fg,
         "editorWidget.background": chrome,
