@@ -26,6 +26,14 @@ export class ScColorContribution implements ColorContribution {
                 defaults: { dark: "charts.orange", light: "charts.orange" },
                 description: "Unresponsive indicator",
             },
+            {
+                id: "sc.evaluatedCodeBackground",
+                defaults: {
+                    dark: "editor.findMatchHighlightBackground",
+                    light: "editor.findMatchHighlightBackground",
+                },
+                description: "Background flash of evaluated code",
+            },
         );
     }
 }

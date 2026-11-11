@@ -47,6 +47,7 @@ import { ScServerStatus } from "./sc-server-status";
 import { ScServerWatcherClientImpl } from "./sc-server-watcher-client-impl";
 import { ScColorContribution } from "./sc-color-contribution";
 import { ColorContribution } from "@theia/core/lib/browser/color-application-contribution";
+import { ScThemeContribution } from "./sc-themes";
 import {
     SC_CLASS_LIBRARY_WIDGET_ID,
     ScClassLibraryViewContribution,
@@ -92,6 +93,8 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(FrontendApplicationContribution).toService(ScStatusBarContribution);
     bind(ScColorContribution).toSelf().inSingletonScope();
     bind(ColorContribution).toService(ScColorContribution);
+    bind(ScThemeContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(ScThemeContribution);
 
     bind(ScFaviconContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(ScFaviconContribution);

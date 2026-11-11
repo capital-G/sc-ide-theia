@@ -45,7 +45,8 @@
     "target": "electron",
     "frontend": {
       "config": {
-        "applicationName": "SuperCollider IDE"
+        "applicationName": "SuperCollider IDE",
+        "defaultTheme": "sc-default"
       }
     }
   }

@@ -24,8 +24,7 @@ export class FlashDecoration extends EditorDecorator {
             `.${FLASH_CLASS}`,
             sheet,
         );
-        rule.style.backgroundColor =
-            "var(--theia-editor-findMatchHighlightBackground)";
+        rule.style.backgroundColor = "var(--theia-sc-evaluatedCodeBackground)";
         rule.style.borderRadius = "2px";
     }
 

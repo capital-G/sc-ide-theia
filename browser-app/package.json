@@ -36,6 +36,11 @@
     "vscode.git": "https://open-vsx.org/api/vscode/git/1.95.3/file/vscode.git-1.95.3.vsix"
   },
   "theia": {
-    "target": "browser"
+    "target": "browser",
+    "frontend": {
+      "config": {
+        "defaultTheme": "sc-default"
+      }
+    }
   }
 }

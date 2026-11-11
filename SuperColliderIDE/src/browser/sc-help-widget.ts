@@ -58,7 +58,8 @@ export class ScHelpWidget extends BaseWidget {
     protected readonly pathResolver!: ScLangPathResolver;
 
     protected frame!: HTMLIFrameElement;
-    protected search!: HTMLInputElement;
+    /** focus the search field of `Search.html` once it got loaded */
+    protected focusSearchOnLoad = false;
     /** url of the loaded page, the iframe resets when it gets moved in the DOM */
     protected current: string | undefined;
 
@@ -71,22 +72,6 @@ export class ScHelpWidget extends BaseWidget {
         this.title.closable = true;
         this.addClass("sc-help");
         this.node.tabIndex = 0;
-
-        const header = document.createElement("div");
-        header.className = "sc-help-header";
-        this.search = document.createElement("input");
-        this.search.className = "theia-input sc-help-search";
-        this.search.type = "search";
-        this.search.placeholder = "Search help";
-        this.search.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" && this.search.value.trim()) {
-                this.goTo(
-                    `${SC_HELP_ROUTE}Search.html#${encodeURIComponent(this.search.value.trim())}`,
-                );
-            }
-        });
-        header.appendChild(this.search);
-        this.node.appendChild(header);
 
         this.frame = document.createElement("iframe");
         this.frame.className = "sc-help-frame";
@@ -127,9 +112,10 @@ export class ScHelpWidget extends BaseWidget {
         this.frame.contentWindow?.location.reload();
     }
 
-    focusSearch(): void {
-        this.search.focus();
-        this.search.select();
+    /** opens the search page of the help */
+    async focusSearch(): Promise<void> {
+        this.focusSearchOnLoad = true;
+        await this.goTo(`${SC_HELP_ROUTE}Search.html`);
     }
 
     protected override onAfterAttach(msg: Message): void {
@@ -163,9 +149,20 @@ export class ScHelpWidget extends BaseWidget {
         if (!win || !doc) {
             return;
         }
-        this.title.label = doc.title ? `Help: ${doc.title}` : "Help";
+        this.title.label = doc.title ? doc.title : "Help";
         doc.addEventListener("click", (e) => this.onFrameClick(e), true);
         doc.addEventListener("keydown", (e) => this.onFrameKey(win, e), true);
+        if (this.focusSearchOnLoad) {
+            this.focusSearchOnLoad = false;
+            // `instanceof` fails across frames, query the element by its type instead
+            const input =
+                doc.querySelector<HTMLInputElement>("input#search_input");
+            if (input) {
+                this.frame.focus();
+                input.focus();
+                input.select();
+            }
+        }
     }
 
     /** links which can not be displayed within the help browser */

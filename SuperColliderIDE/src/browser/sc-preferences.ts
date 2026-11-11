@@ -15,5 +15,7 @@ export class ScPreferenceContribution implements PreferenceContribution {
             SC_LANGUAGE_ID,
             false,
         );
+        // zoom the code via ctrl/cmd + mouse wheel or the touchpad pinch gesture
+        service.registerOverride("editor.mouseWheelZoom", undefined, true);
     }
 }

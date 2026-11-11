@@ -29,15 +29,6 @@
     flex-direction: column;
 }
 
-.sc-help-header {
-    padding: 4px var(--theia-ui-padding, 4px);
-}
-
-.sc-help-search {
-    width: 100%;
-    box-sizing: border-box;
-}
-
 .sc-help-frame {
     flex: 1;
     width: 100%;

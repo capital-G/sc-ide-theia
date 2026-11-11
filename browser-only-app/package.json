@@ -26,6 +26,11 @@
   },
   "theia": {
     "target": "browser-only",
-    "frontend": { "config": { "applicationName": "SuperCollider IDE" } }
+    "frontend": {
+      "config": {
+        "applicationName": "SuperCollider IDE",
+        "defaultTheme": "sc-default"
+      }
+    }
   }
 }
