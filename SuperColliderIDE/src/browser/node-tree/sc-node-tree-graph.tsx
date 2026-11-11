@@ -64,21 +64,24 @@ const nodeIdOf = (graphId: string) =>
     /^n\d+$/.test(graphId) ? Number(graphId.slice(1)) : undefined;
 
 /**
- * Left to right in execution order: the layered algorithm would sort siblings to
- * reduce crossings, the model order keeps the order of the server.
+ * Top to bottom like the boxes, siblings left to right in execution order: the
+ * layered algorithm would sort siblings to reduce crossings, the model order
+ * keeps the order of the server.
  */
 @injectable()
 class ScLayoutConfigurator extends DefaultLayoutConfigurator {
     protected override graphOptions(): LayoutOptions {
         return {
             "elk.algorithm": "layered",
-            "elk.direction": "RIGHT",
+            "elk.direction": "DOWN",
             "elk.edgeRouting": "ORTHOGONAL",
-            "elk.spacing.nodeNode": "10",
-            "elk.layered.spacing.nodeNodeBetweenLayers": "36",
+            "elk.spacing.nodeNode": "16",
+            "elk.layered.spacing.nodeNodeBetweenLayers": "28",
             "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
             "elk.layered.crossingMinimization.forceNodeModelOrder": "true",
             "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+            // centers a group above its children
+            "elk.layered.nodePlacement.bk.fixedAlignment": "BALANCED",
         };
     }
 }
