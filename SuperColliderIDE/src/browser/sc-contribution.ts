@@ -20,6 +20,7 @@ import { FlashDecoration } from "./sc-flash-decoration";
 import { ScAutocomplete } from "./sc-autocomplete";
 import { MonacoEditor } from "@theia/monaco/lib/browser/monaco-editor";
 import { ScClientImpl } from "./sc-client-impl";
+import { ScLaunchOptionsSync } from "./sc-launch-options";
 
 export const SclangStartCommand: Command = {
     id: "sclang.start",
@@ -164,8 +165,12 @@ export class ScCommandContribution
     protected readonly fileDialog!: FileDialogService;
     @inject(WorkspaceService)
     protected readonly workspaceService!: WorkspaceService;
+    @inject(ScLaunchOptionsSync)
+    protected readonly launchOptions!: ScLaunchOptionsSync;
 
-    onDidInitializeLayout(): void {
+    async onDidInitializeLayout(): Promise<void> {
+        // the paths and the config of the language settings, before the first start
+        await this.launchOptions.sync();
         this.scService.startInterpreter();
     }
 

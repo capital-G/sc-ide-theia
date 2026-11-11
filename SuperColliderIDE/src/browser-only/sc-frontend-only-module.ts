@@ -27,6 +27,7 @@ import {
     ScWorkspaceScratchPad,
 } from "./sc-default-workspace";
 import { ScScratchPad } from "../browser/sc-default-language";
+import { ScNativeEnvironment } from "../browser/sc-language-preferences";
 
 export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(ScServiceBrowser).toSelf().inSingletonScope();
@@ -76,4 +77,7 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(PreferenceContribution)
         .to(ScBrowserOnlyPreferences)
         .inSingletonScope();
+
+    // a fixed sclang, scsynth and class library - no language settings
+    rebind(ScNativeEnvironment).toConstantValue({ native: false });
 });

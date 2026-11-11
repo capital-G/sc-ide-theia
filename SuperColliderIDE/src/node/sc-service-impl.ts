@@ -13,6 +13,7 @@ import {
 import { SclangNodeRuntime } from "./sclang-node-runtime";
 import { ScServiceCore } from "../common/sc-service-core";
 import { ScHelpTarget } from "../common/sc-help";
+import { ScLaunchOptions } from "../common/sc-language-config";
 import { MaybePromise } from "@theia/core";
 import { Application } from "express";
 
@@ -40,6 +41,10 @@ export class ScServiceImpl
     }
     getClient(): ScClient | undefined {
         return this.client;
+    }
+
+    async setLaunchOptions(options: ScLaunchOptions): Promise<void> {
+        this.runtime.setLaunchOptions(options);
     }
 
     startInterpreter(): Promise<void> {
@@ -76,8 +81,8 @@ export class ScServiceImpl
         return this.core.interpreterState();
     }
 
-    async resolveSclangPath(): Promise<string | undefined> {
-        return undefined;
+    resolveSclangPath(): Promise<string | undefined> {
+        return this.runtime.resolveSclangPath();
     }
 
     queryClass(text: string): Promise<string[]> {

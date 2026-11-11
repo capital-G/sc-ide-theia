@@ -65,6 +65,20 @@ import {
     ScFileLangPathResolver,
     ScLangPathResolver,
 } from "./sc-lang-path-resolver";
+import {
+    SC_LANGUAGE_CONFIG_PATH,
+    ScLanguageConfigService,
+} from "../common/sc-language-config";
+import {
+    ScLanguagePreferenceContribution,
+    ScNativeEnvironment,
+} from "./sc-language-preferences";
+import { ScLaunchOptionsSync } from "./sc-launch-options";
+import {
+    SC_LANGUAGE_SETTINGS_WIDGET_ID,
+    ScLanguageSettingsWidget,
+} from "./sc-language-settings-widget";
+import { ScLanguageSettingsContribution } from "./sc-language-settings-contribution";
 
 export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(ScClientImpl).toSelf().inSingletonScope();
@@ -162,4 +176,30 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
 
     bind(ScPostWindow).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(ScPostWindow);
+
+    // language settings of the native sclang, the wasm frontend-only module rebinds this to false
+    bind(ScNativeEnvironment).toConstantValue({ native: true });
+    bind(ScLanguageConfigService)
+        .toDynamicValue((ctx) =>
+            ctx.container
+                .get<ServiceConnectionProvider>(RemoteConnectionProvider)
+                .createProxy<ScLanguageConfigService>(SC_LANGUAGE_CONFIG_PATH),
+        )
+        .inSingletonScope();
+    bind(PreferenceContribution)
+        .to(ScLanguagePreferenceContribution)
+        .inSingletonScope();
+    bind(ScLaunchOptionsSync).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(ScLaunchOptionsSync);
+    bind(ScLanguageSettingsWidget).toSelf();
+    bind(WidgetFactory)
+        .toDynamicValue((ctx) => ({
+            id: SC_LANGUAGE_SETTINGS_WIDGET_ID,
+            createWidget: () => ctx.container.get(ScLanguageSettingsWidget),
+        }))
+        .inSingletonScope();
+    bindViewContribution(bind, ScLanguageSettingsContribution);
+    bind(FrontendApplicationContribution).toService(
+        ScLanguageSettingsContribution,
+    );
 });

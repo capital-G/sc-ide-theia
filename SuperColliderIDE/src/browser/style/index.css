@@ -42,3 +42,155 @@ body.lm-mod-override-cursor .sc-help-frame,
 body.theia-mod-dragging .sc-help-frame {
     pointer-events: none;
 }
+
+/* language settings */
+.sc-language-settings {
+    overflow: auto;
+    /* the layout follows the width of the side panel, see the container query */
+    container-type: inline-size;
+}
+
+.sc-language-settings-page {
+    max-width: 900px;
+    padding: 4px 12px 16px;
+}
+
+.sc-language-settings-page h2 {
+    margin: 16px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--theia-widget-border);
+    font-size: var(--theia-ui-font-size3);
+    font-weight: 600;
+}
+
+.sc-language-settings-row {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    margin: 10px 0;
+}
+
+.sc-language-settings-row > label {
+    padding-top: 4px;
+}
+
+.sc-language-settings-field {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+}
+
+.sc-language-settings-field input,
+.sc-language-settings-field select {
+    flex: 1;
+    min-width: 0;
+}
+
+.sc-language-settings-page .theia-button {
+    margin-left: 0;
+    min-width: auto;
+}
+
+.sc-language-settings-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+}
+
+.sc-language-settings-list-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 2px 6px;
+    box-sizing: border-box;
+    border: 1px solid var(--theia-widget-border);
+    border-radius: 3px;
+}
+
+/* wrap long paths instead of cutting them in a narrow side panel */
+.sc-language-settings-list-item span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+
+.sc-language-settings-list-item .sc-language-settings-icon {
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
+.sc-language-settings-icon {
+    border: none;
+    background: transparent;
+    color: var(--theia-foreground);
+    cursor: pointer;
+}
+
+.sc-language-settings-empty {
+    color: var(--theia-descriptionForeground);
+    padding: 4px 0;
+}
+
+.sc-language-settings-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sc-language-settings-advanced {
+    margin: 10px 0;
+}
+
+.sc-language-settings-advanced summary {
+    cursor: pointer;
+    color: var(--theia-descriptionForeground);
+}
+
+.sc-language-settings-hint {
+    margin: 6px 0;
+    color: var(--theia-descriptionForeground);
+    overflow-wrap: anywhere;
+}
+
+.sc-language-settings-field .sc-language-settings-hint {
+    flex-basis: 100%;
+    margin: 0;
+}
+
+.sc-language-settings-footer {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.sc-language-settings-error {
+    padding: 24px;
+    color: var(--theia-errorForeground);
+}
+
+.sc-language-settings-loading {
+    padding: 24px;
+    color: var(--theia-descriptionForeground);
+}
+
+/* a narrow side panel: labels above their fields */
+@container (max-width: 520px) {
+    .sc-language-settings-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px;
+    }
+
+    .sc-language-settings-row > span:empty {
+        display: none;
+    }
+
+    .sc-language-settings-field select {
+        flex-basis: 100%;
+    }
+}

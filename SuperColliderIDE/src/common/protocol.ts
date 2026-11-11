@@ -1,6 +1,7 @@
 import { RpcServer } from "@theia/core";
 import { ScTheiaMessage } from "./sc-service-core";
 import { ScHelpTarget } from "./sc-help";
+import { ScLaunchOptions } from "./sc-language-config";
 
 export const SC_SERVICE_PATH = "/services/supercollider";
 export const SC_SERVER_WATCHER_PATH = "/services/scserverwatcher";
@@ -88,6 +89,8 @@ export enum QuerySelector {
  * Defines the service between backend and frontend.
  */
 export interface ScService extends RpcServer<ScClient> {
+    /** applies on the next start of the interpreter, a no-op in the wasm build */
+    setLaunchOptions(options: ScLaunchOptions): Promise<void>;
     startInterpreter(): Promise<void>;
     stopInterpreter(): Promise<void>;
     restartInterpreter(): Promise<void>;

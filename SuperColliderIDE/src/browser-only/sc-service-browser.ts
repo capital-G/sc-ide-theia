@@ -58,6 +58,9 @@ export class ScServiceBrowser implements ScService {
         this.scsynth.installGlobals();
     }
 
+    /** the wasm build always runs the same sclang and scsynth */
+    async setLaunchOptions(): Promise<void> {}
+
     startInterpreter(): Promise<void> {
         return this.core.start();
     }

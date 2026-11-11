@@ -11,19 +11,20 @@ import {
     SC_QUERY_LIMIT,
     SC_REPLY_ADDRESS as SC_REPLY_SELECTOR,
 } from "../common/protocol";
-import { access, constants } from "fs/promises";
 import OSC from "osc-js";
-
-/** first match wins - SC_LANG_PATH env for overwriting */
-const SCLANG_PATH_CANDIDATES = [
-    "/Applications/SuperCollider-3.14.1.app/Contents/MacOS/sclang",
-    "/Applications/SuperCollider.app/Contents/MacOS/sclang",
-];
+import { ScLaunchOptions } from "../common/sc-language-config";
+import {
+    currentEnvironment,
+    resolveSclang,
+    scsynthProgramCode,
+} from "./sc-executables";
 
 export class SclangNodeRuntime implements SclangRuntime {
     protected process: SclangProcess | undefined;
     protected udp: SclangUdp | undefined;
     protected port: number | undefined;
+    protected launchOptions: ScLaunchOptions = {};
+    protected readonly environment = currentEnvironment();
 
     protected readonly postEmitter = new Emitter<string>();
     readonly onPost: Event<string> = this.postEmitter.event;
@@ -53,18 +54,29 @@ export class SclangNodeRuntime implements SclangRuntime {
         return this.process?.pid;
     }
 
+    /** applies on the next start */
+    setLaunchOptions(options: ScLaunchOptions): void {
+        this.launchOptions = options;
+    }
+
     get bootstrapPrologue(): string {
+        const scsynth = this.launchOptions.scsynthPath;
         return (
             `~theiaLimit = ${SC_QUERY_LIMIT};` +
             `~theiaAddr = NetAddr("127.0.0.1", ${this.port});` +
-            `~theiaEmit = {|selector ...rows| ~theiaAddr.sendMsg(selector, *rows)};`
+            `~theiaEmit = {|selector ...rows| ~theiaAddr.sendMsg(selector, *rows)};` +
+            (scsynth
+                ? scsynthProgramCode(scsynth, this.environment.platform)
+                : "")
         );
     }
 
     async start(): Promise<void> {
         const sclangPath = await this.resolveSclangPath();
         if (!sclangPath) {
-            this.postEmitter?.fire("Could not find sclang binary!\n");
+            this.postEmitter?.fire(
+                "Could not find sclang, choose the SuperCollider installation in the language settings or set SC_LANG_PATH.\n",
+            );
             this.exitEmitter.fire(null);
             return;
         }
@@ -85,6 +97,10 @@ export class SclangNodeRuntime implements SclangRuntime {
             {
                 sclangPath: sclangPath,
                 ideName: "theia",
+                cwd: this.launchOptions.cwd,
+                arguments: this.launchOptions.configFile
+                    ? ["-l", this.launchOptions.configFile]
+                    : [],
             },
             (chunk) => this.onChunk(chunk),
             (code) => {
@@ -125,20 +141,8 @@ export class SclangNodeRuntime implements SclangRuntime {
         }
     }
 
-    async resolveSclangPath(): Promise<string | undefined> {
-        const envPath = process.env.SC_LANG_PATH;
-        if (envPath) {
-            return envPath;
-        }
-        for (const pathCandidate of SCLANG_PATH_CANDIDATES) {
-            try {
-                await access(pathCandidate, constants.F_OK);
-                return pathCandidate;
-            } catch {
-                // try next one ;)
-            }
-        }
-        return undefined;
+    resolveSclangPath(): Promise<string | undefined> {
+        return resolveSclang(this.environment, this.launchOptions);
     }
 
     dispose(): void {
