@@ -9,7 +9,8 @@ interface ScsynthModule {
     onOscReply: (msg: Uint8Array) => void;
     onPrint: (line: string) => void;
     getAudioContext(): AudioContext;
-    getWorkletNode(): AudioWorkletNode;
+    /** undefined until the audio worklet thread of scsynth got started */
+    getWorkletNode(): AudioWorkletNode | undefined;
 }
 
 type ScsynthFactory = (cfg: {
@@ -22,6 +23,9 @@ export interface ScsynthOutput {
     node: AudioNode;
     channels: number;
 }
+
+/** how long to wait for scsynth's audio worklet after booting */
+const WORKLET_NODE_TIMEOUT_MS = 10_000;
 
 export class ScsynthWasm {
     protected module: ScsynthModule | undefined;
@@ -77,29 +81,55 @@ export class ScsynthWasm {
         this.module = module;
 
         await module.getAudioContext().resume();
+        const node = await this.waitForWorkletNode(module);
+        if (!node) {
+            this.postEmitter.fire(
+                "[scsynth] The audio worklet did not start, the scopes and the audio input are not available\n",
+            );
+            return;
+        }
         this._output = {
             context: module.getAudioContext(),
-            node: module.getWorkletNode(),
+            node,
             channels: options.numOutputBusChannels ?? 2,
         };
         this.bootedEmitter.fire(this._output);
 
         if ((options.numInputBusChannels ?? 0) > 0) {
-            await this.connectMic(module);
+            await this.connectMic(module, node);
         }
     }
 
+    /**
+     * The worklet node gets created once scsynth's audio worklet thread runs,
+     * which happens asynchronously after `boot`.
+     */
+    protected async waitForWorkletNode(
+        module: ScsynthModule,
+    ): Promise<AudioWorkletNode | undefined> {
+        const deadline = Date.now() + WORKLET_NODE_TIMEOUT_MS;
+        while (Date.now() < deadline) {
+            const node = module.getWorkletNode();
+            if (node) {
+                return node;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        return undefined;
+    }
+
     /** we have to pass the mic to scsynth */
-    protected async connectMic(module: ScsynthModule): Promise<void> {
+    protected async connectMic(
+        module: ScsynthModule,
+        node: AudioWorkletNode,
+    ): Promise<void> {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
                 video: false,
             });
             const context = module.getAudioContext();
-            context
-                .createMediaStreamSource(stream)
-                .connect(module.getWorkletNode());
+            context.createMediaStreamSource(stream).connect(node);
         } catch (err) {
             this.postEmitter.fire(
                 `[scsynth] Failed to access audio input: ${err}\n`,
