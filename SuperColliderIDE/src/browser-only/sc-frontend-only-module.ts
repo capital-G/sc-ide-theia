@@ -1,4 +1,6 @@
 import { ContainerModule } from "@theia/core/shared/inversify";
+import { CommandContribution } from "@theia/core";
+import { WidgetFactory } from "@theia/core/lib/browser";
 import { ScServerWatcherService, ScService } from "../common/protocol";
 import { ScServiceBrowser } from "./sc-service-browser";
 import { ScServerWatcherBrowser } from "./sc-server-watcher-browser";
@@ -12,6 +14,12 @@ import {
     ScMemfsLangPathResolver,
     SclangFsContribution,
 } from "./sclang-fs-provider";
+import {
+    SC_AUDIO_SCOPE_FACTORY_ID,
+    ScAudioScopeOptions,
+    ScAudioScopeWidget,
+} from "./sc-audio-scope-widget";
+import { ScAudioScopeContribution } from "./sc-audio-scope-contribution";
 
 export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(ScServiceBrowser).toSelf().inSingletonScope();
@@ -35,4 +43,21 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     (isBound(ScClassLibraryLocator) ? rebind : bind)(
         ScClassLibraryLocator,
     ).toService(ScMemfsClassLibraryLocator);
+
+    bind(WidgetFactory)
+        .toDynamicValue((ctx) => ({
+            id: SC_AUDIO_SCOPE_FACTORY_ID,
+            createWidget: (options?: ScAudioScopeOptions) => {
+                const child = ctx.container.createChild();
+                // scopes restored from an older layout have no options
+                child
+                    .bind(ScAudioScopeOptions)
+                    .toConstantValue(options ?? { instance: 0 });
+                child.bind(ScAudioScopeWidget).toSelf();
+                return child.get(ScAudioScopeWidget);
+            },
+        }))
+        .inSingletonScope();
+    bind(ScAudioScopeContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(ScAudioScopeContribution);
 });

@@ -16,6 +16,13 @@ type ScsynthFactory = (cfg: {
     locateFile(path: string): string;
 }) => Promise<ScsynthModule>;
 
+/** the audio output of scsynth, e.g. to tap it for analysis */
+export interface ScsynthOutput {
+    context: AudioContext;
+    node: AudioNode;
+    channels: number;
+}
+
 export class ScsynthWasm {
     protected module: ScsynthModule | undefined;
     // acts as a singleton guard
@@ -26,6 +33,15 @@ export class ScsynthWasm {
 
     protected readonly replyEmitter = new Emitter<Uint8Array>();
     readonly onOscReplyEvent: Event<Uint8Array> = this.replyEmitter.event;
+
+    protected readonly bootedEmitter = new Emitter<ScsynthOutput>();
+    /** fires once the audio worklet is running */
+    readonly onBooted: Event<ScsynthOutput> = this.bootedEmitter.event;
+
+    protected _output: ScsynthOutput | undefined;
+    get output(): ScsynthOutput | undefined {
+        return this._output;
+    }
 
     constructor(
         // pass osc messages back to sclang
@@ -61,6 +77,12 @@ export class ScsynthWasm {
         this.module = module;
 
         await module.getAudioContext().resume();
+        this._output = {
+            context: module.getAudioContext(),
+            node: module.getWorkletNode(),
+            channels: options.numOutputBusChannels ?? 2,
+        };
+        this.bootedEmitter.fire(this._output);
 
         if ((options.numInputBusChannels ?? 0) > 0) {
             await this.connectMic(module);
@@ -108,5 +130,6 @@ export class ScsynthWasm {
 
     dispose(): void {
         this.postEmitter.dispose();
+        this.bootedEmitter.dispose();
     }
 }

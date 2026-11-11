@@ -1,0 +1,83 @@
+.sc-audio-scope {
+    display: flex;
+    flex-direction: column;
+    background: var(--theia-editor-background);
+}
+
+.sc-audio-scope-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 12px;
+    padding: 4px var(--theia-ui-padding, 4px);
+    border-bottom: 1px solid var(--theia-widget-border);
+}
+
+.sc-audio-scope-modes,
+.sc-audio-scope-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+}
+
+.sc-audio-scope-modes {
+    gap: 2px;
+}
+
+.sc-audio-scope-controls label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--theia-descriptionForeground);
+    font-size: var(--theia-ui-font-size1);
+}
+
+.sc-audio-scope-mode {
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--theia-foreground);
+    font-family: var(--theia-ui-font-family);
+    font-size: var(--theia-ui-font-size1);
+    cursor: pointer;
+}
+
+.sc-audio-scope-mode:hover {
+    background: var(--theia-list-hoverBackground);
+}
+
+.sc-audio-scope-mode.active {
+    background: var(--theia-button-background);
+    color: var(--theia-button-foreground);
+}
+
+.sc-audio-scope-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.sc-audio-scope-body canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.sc-audio-scope-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--theia-editor-background);
+    color: var(--theia-descriptionForeground);
+}
+
+.sc-audio-scope-placeholder[hidden] {
+    display: none;
+}
