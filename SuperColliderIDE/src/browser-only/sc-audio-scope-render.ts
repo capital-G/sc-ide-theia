@@ -23,6 +23,12 @@ export interface Frame {
 }
 
 const METER_MIN_DB = -60;
+/**
+ * Levels below are shown as `-inf`, like the bottom of a DAW meter (~16 bit
+ * noise floor). A decaying peak hold would otherwise count down forever.
+ */
+export const METER_FLOOR_DB = -90;
+export const METER_FLOOR_AMP = Math.pow(10, METER_FLOOR_DB / 20);
 
 /** visible part of the spectrum, frequencies in Hz and levels in dB */
 export interface SpectrumView {
@@ -367,18 +373,59 @@ export interface MeterLevel {
     hold: number;
 }
 
+/** peak and rms, non-finite samples (e.g. a NaN from the server) are skipped */
 export function measure(data: Float32Array): { peak: number; rms: number } {
     let peak = 0;
     let sum = 0;
+    let count = 0;
     for (const sample of data) {
-        peak = Math.max(peak, Math.abs(sample));
-        sum += sample * sample;
+        if (Number.isFinite(sample)) {
+            peak = Math.max(peak, Math.abs(sample));
+            sum += sample * sample;
+            count++;
+        }
     }
-    return { peak, rms: Math.sqrt(sum / data.length) };
+    return { peak, rms: count > 0 ? Math.sqrt(sum / count) : 0 };
 }
+
+/**
+ * Whether an analyser got poisoned by a non-finite sample: it smooths each bin
+ * w/ `t * previous + (1 - t) * current`, so a NaN stays forever - even for
+ * `t = 0`, as `0 * NaN` is NaN. -Infinity is fine, it is silence.
+ */
+export function hasInvalidBins(db: Float32Array): boolean {
+    for (const level of db) {
+        if (Number.isNaN(level) || level === Infinity) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Whether every bin is -Infinity, i.e. digital silence - or a poisoned analyser
+ * of a browser which reports its NaN bins as -Infinity (e.g. firefox).
+ */
+export function isSilentSpectrum(db: Float32Array): boolean {
+    for (const level of db) {
+        if (level !== -Infinity) {
+            return false;
+        }
+    }
+    return db.length > 0;
+}
+
+/** ~ -100 dB, a signal which can not result in an entirely silent spectrum */
+export const SIGNAL_THRESHOLD = 1e-5;
 
 function toDb(amp: number): number {
     return amp > 0 ? 20 * Math.log10(amp) : -Infinity;
+}
+
+/** the readout of a meter, `-inf` below {@link METER_FLOOR_DB} */
+export function meterReadout(amp: number): string {
+    const db = toDb(amp);
+    return db >= METER_FLOOR_DB ? db.toFixed(1) : "-inf";
 }
 
 /**
@@ -472,8 +519,7 @@ export function drawMeters(f: Frame, levels: MeterLevel[]): void {
         ctx.lineWidth = 2 * px;
         line(Math.round(posOf(toDb(level.hold))) + 0.5, c0, c0 + bar);
 
-        const db = toDb(level.hold);
-        const text = `${c}: ${Number.isFinite(db) ? db.toFixed(1) : "-inf"}`;
+        const text = `${c}: ${meterReadout(level.hold)}`;
         if (vertical) {
             label(f, text, c0, height - 4 * px);
         } else {

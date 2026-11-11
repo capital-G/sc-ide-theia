@@ -12,6 +12,10 @@ import {
     drawOscilloscope,
     drawSpectrum,
     Frame,
+    hasInvalidBins,
+    isSilentSpectrum,
+    SIGNAL_THRESHOLD,
+    METER_FLOOR_AMP,
     measure,
     MeterLevel,
     ScopeColors,
@@ -80,6 +84,9 @@ const MAX_ANALYSER_SIZE = 32768;
 /** deltaY of a wheel event per step of a discrete zoom */
 const WHEEL_STEP = 40;
 
+/** at most one reset of a poisoned analyser within this time */
+const ANALYSER_RESET_INTERVAL_MS = 500;
+
 /** peak hold of the meters, in seconds */
 const HOLD_TIME = 1.5;
 /** decay of the peak hold after {@link HOLD_TIME}, in dB per second */
@@ -138,10 +145,12 @@ export class ScAudioScopeWidget extends BaseWidget implements StatefulWidget {
     );
 
     protected mixData = new Float32Array(0);
+    protected mixTimeData = new Float32Array(0);
     protected channelData: Float32Array[] = [];
     protected levels: MeterLevel[] = [];
     protected holdSince: number[] = [];
     protected lastFrame = 0;
+    protected lastAnalyserReset = -Infinity;
     protected wheelDelta = 0;
 
     get instance(): number {
@@ -583,7 +592,9 @@ export class ScAudioScopeWidget extends BaseWidget implements StatefulWidget {
 
         switch (this._mode) {
             case "spectrum":
-                tap.mix.getFloatFrequencyData(this.mixData);
+                if (!this.readSpectrum(tap, time)) {
+                    break;
+                }
                 drawSpectrum(
                     frame,
                     this.mixData,
@@ -592,7 +603,9 @@ export class ScAudioScopeWidget extends BaseWidget implements StatefulWidget {
                 );
                 break;
             case "spectrogram":
-                tap.mix.getFloatFrequencyData(this.mixData);
+                if (!this.readSpectrum(tap, time)) {
+                    break;
+                }
                 this.spectrogram.draw(
                     frame,
                     this.mixData,
@@ -618,6 +631,51 @@ export class ScAudioScopeWidget extends BaseWidget implements StatefulWidget {
         this.start();
     }
 
+    /**
+     * Reads the spectrum of the mix, false if the analyser had to be replaced
+     * because a non-finite sample poisoned it - see {@link hasInvalidBins}.
+     */
+    protected readSpectrum(tap: Tap, time: number): boolean {
+        tap.mix.getFloatFrequencyData(this.mixData);
+        if (!hasInvalidBins(this.mixData) && !this.silentWithSignal(tap)) {
+            return true;
+        }
+        // in case the server keeps producing them
+        if (time - this.lastAnalyserReset > ANALYSER_RESET_INTERVAL_MS) {
+            this.lastAnalyserReset = time;
+            this.replaceMixAnalyser(tap);
+        }
+        return false;
+    }
+
+    /**
+     * A silent spectrum although the (unsmoothed) samples of the same analyser
+     * carry a signal - its smoothing state got poisoned.
+     */
+    protected silentWithSignal(tap: Tap): boolean {
+        if (!isSilentSpectrum(this.mixData)) {
+            return false;
+        }
+        if (this.mixTimeData.length !== tap.mix.fftSize) {
+            this.mixTimeData = new Float32Array(tap.mix.fftSize);
+        }
+        tap.mix.getFloatTimeDomainData(this.mixTimeData);
+        return measure(this.mixTimeData).peak > SIGNAL_THRESHOLD;
+    }
+
+    /** a fresh analyser, which has no smoothing state yet */
+    protected replaceMixAnalyser(tap: Tap): void {
+        console.info(
+            "[scope] the analyser of the spectrum got stuck (non-finite samples of scsynth?), resetting it",
+        );
+        const { node, context } = tap.output;
+        const mix = context.createAnalyser();
+        node.connect(mix);
+        node.disconnect(tap.mix);
+        tap.mix = mix;
+        this.configureAnalysers();
+    }
+
     protected readChannels(tap: Tap): void {
         tap.channels.forEach((analyser, c) =>
             analyser.getFloatTimeDomainData(this.channelData[c]),
@@ -639,6 +697,10 @@ export class ScAudioScopeWidget extends BaseWidget implements StatefulWidget {
                     peak,
                     level.hold * Math.pow(10, (-HOLD_DECAY * dt) / 20),
                 );
+            }
+            // the decay never reaches 0, stop at the floor of the readout
+            if (level.hold < METER_FLOOR_AMP) {
+                level.hold = 0;
             }
         });
     }
