@@ -57,6 +57,8 @@ interface ScTheme {
     id: string;
     label: string;
     dark: boolean;
+    /** name of the SCDoc theme, see `HelpSource/static/themes` */
+    docs: string;
     /** used for UI elements which scide takes from the native Qt palette (buttons, focus, ...) */
     accent: string;
     accentForeground: string;
@@ -83,6 +85,7 @@ function scDefault(): ScTheme {
         id: "sc-default",
         label: "SuperCollider Default",
         dark: false,
+        docs: "default",
         accent: cyan,
         accentForeground: WHITE,
         formats: {
@@ -122,6 +125,7 @@ function scClassic(): ScTheme {
         id: "sc-classic",
         label: "SuperCollider Classic",
         dark: false,
+        docs: "classic",
         accent: "#308cc6",
         accentForeground: WHITE,
         formats: {
@@ -158,6 +162,7 @@ function scDark(): ScTheme {
         id: "sc-dark",
         label: "SuperCollider Dark",
         dark: true,
+        docs: "dark",
         accent: "#3a6ea5",
         accentForeground: WHITE,
         formats: {
@@ -194,6 +199,7 @@ function scDracula(): ScTheme {
         id: "sc-dracula",
         label: "SuperCollider Dracula",
         dark: true,
+        docs: "dracula",
         accent: "#6071a6",
         accentForeground: "#f7fdff",
         formats: {
@@ -230,6 +236,7 @@ function scMonokai(): ScTheme {
         id: "sc-monokai",
         label: "SuperCollider Monokai",
         dark: true,
+        docs: "monokai",
         accent: "#A6E22E",
         accentForeground: "#272822",
         formats: {
@@ -266,6 +273,7 @@ function scSolarizedLight(): ScTheme {
         id: "sc-solarized-light",
         label: "SuperCollider Solarized Light",
         dark: false,
+        docs: "solarizedLight",
         accent: "#268bd2",
         accentForeground: WHITE,
         formats: {
@@ -302,6 +310,7 @@ function scSolarizedDark(): ScTheme {
         id: "sc-solarized-dark",
         label: "SuperCollider Solarized Dark",
         dark: true,
+        docs: "solarizedDark",
         accent: "#268bd2",
         accentForeground: WHITE,
         formats: {
@@ -342,6 +351,11 @@ export const SC_THEMES: ScTheme[] = [
     scSolarizedLight(),
     scSolarizedDark(),
 ];
+
+/** the SCDoc theme matching an IDE color theme, if any */
+export function scDocsThemeOf(themeId: string): string | undefined {
+    return SC_THEMES.find((t) => t.id === themeId)?.docs;
+}
 
 // --- color helpers ---
 

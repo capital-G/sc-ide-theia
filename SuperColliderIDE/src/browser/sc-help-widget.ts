@@ -5,6 +5,7 @@ import {
     OpenerService,
     open,
 } from "@theia/core/lib/browser";
+import { ThemeService } from "@theia/core/lib/browser/theming";
 import {
     inject,
     injectable,
@@ -18,8 +19,17 @@ import {
     helpTargetUrl,
 } from "../common/sc-help";
 import { ScLangPathResolver } from "./sc-lang-path-resolver";
+import { scDocsThemeOf } from "./sc-themes";
 
 export const SC_HELP_WIDGET_ID = "sc-help";
+
+/** localStorage key of the SCDoc theme, see `HelpSource/static/scdoc.js` */
+const SC_DOCS_THEME_KEY = "scDocsTheme";
+
+/** global functions of `scdoc.js` */
+interface ScDocWindow extends Window {
+    setTheme?(theme: string): void;
+}
 
 /**
  * Makes the help route reachable - immediate for the node backend,
@@ -56,6 +66,7 @@ export class ScHelpWidget extends BaseWidget {
     protected readonly keyCommands!: ScHelpKeyCommands;
     @inject(ScLangPathResolver)
     protected readonly pathResolver!: ScLangPathResolver;
+    @inject(ThemeService) protected readonly themeService!: ThemeService;
 
     protected frame!: HTMLIFrameElement;
     /** focus the search field of `Search.html` once it got loaded */
@@ -78,6 +89,33 @@ export class ScHelpWidget extends BaseWidget {
         this.frame.title = "SuperCollider Help";
         this.frame.addEventListener("load", () => this.onFrameLoad());
         this.node.appendChild(this.frame);
+
+        this.syncDocsTheme(this.themeService.getCurrentTheme().id);
+        this.toDispose.push(
+            this.themeService.onDidColorThemeChange((e) =>
+                this.syncDocsTheme(e.newTheme.id),
+            ),
+        );
+    }
+
+    /**
+     * Switches the SCDoc theme along with a matching IDE color theme.
+     * The help is served from the same origin, so the IDE shares the
+     * localStorage of the docs which persists the theme for the next pages.
+     */
+    protected syncDocsTheme(themeId: string): void {
+        const docsTheme = scDocsThemeOf(themeId);
+        if (!docsTheme) {
+            return;
+        }
+        try {
+            localStorage.setItem(SC_DOCS_THEME_KEY, docsTheme);
+            (this.frame.contentWindow as ScDocWindow | null)?.setTheme?.(
+                docsTheme,
+            );
+        } catch {
+            // blocked storage or a cross origin page
+        }
     }
 
     /** loads a page, url is below {@link SC_HELP_ROUTE} */
