@@ -21,6 +21,8 @@ const SCRATCH_CONTENT = `// welcome to sc.wasm
 // use cmd/ctrl+enter to evaluate the current line or the (region) around the cursor,
 // cmd+. stops all sounds
 
+// use cmd/ctrl+shift+p or f1 to trigger the command palette to spawn e.g. an oscilloscope or change the theme
+
 s.options.numInputBusChannels = 0;
 s.boot;
 
