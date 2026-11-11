@@ -30,6 +30,8 @@ import { ScClassLibraryLocator } from "../browser/sc-class-library-locator";
 export const SCLANG_FS_SCHEME = "sclang";
 /** fixed by the `--preload-file ...@/sc/SCClassLibrary` of the sclang wasm build */
 export const SCLANG_CLASS_LIBRARY_PATH = "/sc/SCClassLibrary";
+/** loading the wasm module includes downloading the class library and the docs */
+const FS_READY_TIMEOUT = 120_000;
 
 /**
  * errno values of emscripten, which differ from posix
@@ -59,7 +61,10 @@ export class SclangFsProvider implements FileSystemProviderWithFileReadWriteCapa
     readonly onFileWatchError: Event<void> = Event.None;
 
     // fs is runtime dependent and not owned
-    constructor(protected readonly fs: () => EmscriptenFS | undefined) {}
+    constructor(
+        protected readonly fs: () => EmscriptenFS | undefined,
+        protected readonly onFsReady: Event<void>,
+    ) {}
 
     // can not watch memfs
     watch(): Disposable {
@@ -67,7 +72,7 @@ export class SclangFsProvider implements FileSystemProviderWithFileReadWriteCapa
     }
 
     async stat(resource: URI): Promise<Stat> {
-        const fs = this.require();
+        const fs = await this.ready();
         const s = this.call(() => fs.stat(resource.path.toString()));
         return {
             type: fs.isDir(s.mode) ? FileType.Directory : FileType.File,
@@ -78,7 +83,7 @@ export class SclangFsProvider implements FileSystemProviderWithFileReadWriteCapa
     }
 
     async readdir(resource: URI): Promise<[string, FileType][]> {
-        const fs = this.require();
+        const fs = await this.ready();
         return this.call(() =>
             fs
                 .readdir(resource.path.toString())
@@ -96,7 +101,7 @@ export class SclangFsProvider implements FileSystemProviderWithFileReadWriteCapa
     }
 
     async readFile(resource: URI): Promise<Uint8Array> {
-        const fs = this.require();
+        const fs = await this.ready();
         return this.call(() =>
             fs.readFile(resource.path.toString(), { encoding: "binary" }),
         );
@@ -107,9 +112,9 @@ export class SclangFsProvider implements FileSystemProviderWithFileReadWriteCapa
         content: Uint8Array,
         opts: FileWriteOptions,
     ): Promise<void> {
-        const fs = this.require();
+        const fs = await this.ready();
         const path = resource.path.toString();
-        const exists = this.exists(path);
+        const exists = this.exists(fs, path);
         if (exists && fs.isDir(fs.stat(path).mode)) {
             throw providerError(
                 "is a directory",
@@ -136,13 +141,13 @@ export class SclangFsProvider implements FileSystemProviderWithFileReadWriteCapa
     }
 
     async mkdir(resource: URI): Promise<void> {
-        const fs = this.require();
+        const fs = await this.ready();
         this.call(() => fs.mkdir(resource.path.toString()));
         this.fireChange(FileChangeType.ADDED, resource);
     }
 
     async delete(resource: URI, opts: FileDeleteOptions): Promise<void> {
-        const fs = this.require();
+        const fs = await this.ready();
         this.call(() =>
             this.deletePath(fs, resource.path.toString(), opts.recursive),
         );
@@ -154,9 +159,9 @@ export class SclangFsProvider implements FileSystemProviderWithFileReadWriteCapa
         to: URI,
         opts: FileOverwriteOptions,
     ): Promise<void> {
-        const fs = this.require();
+        const fs = await this.ready();
         const target = to.path.toString();
-        if (this.exists(target)) {
+        if (this.exists(fs, target)) {
             if (!opts.overwrite) {
                 throw providerError(
                     "file exists",
@@ -191,9 +196,9 @@ export class SclangFsProvider implements FileSystemProviderWithFileReadWriteCapa
         fs.rmdir(path);
     }
 
-    protected exists(path: string): boolean {
+    protected exists(fs: EmscriptenFS, path: string): boolean {
         try {
-            this.require().stat(path);
+            fs.stat(path);
             return true;
         } catch {
             return false;
@@ -204,15 +209,31 @@ export class SclangFsProvider implements FileSystemProviderWithFileReadWriteCapa
         this.changeEmitter.fire([{ type, resource }]);
     }
 
-    protected require(): EmscriptenFS {
+    /**
+     * Theia restores the editors of the last session (e.g. a class file) before
+     * sclang gets started, so wait for the module to be loaded.
+     */
+    protected ready(): Promise<EmscriptenFS> {
         const fs = this.fs();
-        if (!fs) {
-            throw createFileSystemProviderError(
-                "sclang not started",
-                FileSystemProviderErrorCode.Unavailable,
-            );
+        if (fs) {
+            return Promise.resolve(fs);
         }
-        return fs;
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                listener.dispose();
+                reject(
+                    createFileSystemProviderError(
+                        "sclang not started",
+                        FileSystemProviderErrorCode.Unavailable,
+                    ),
+                );
+            }, FS_READY_TIMEOUT);
+            const listener = this.onFsReady(() => {
+                clearTimeout(timeout);
+                listener.dispose();
+                resolve(this.fs()!);
+            });
+        });
     }
 
     /** translate emscripten's ErrnoError into something theia understands */
@@ -257,7 +278,10 @@ export class SclangFsContribution implements FileServiceContribution {
     registerFileSystemProviders(service: FileService): void {
         service.registerProvider(
             SCLANG_FS_SCHEME,
-            new SclangFsProvider(() => this.sc.sclangFs),
+            new SclangFsProvider(
+                () => this.sc.sclangFs,
+                this.sc.onSclangFsReady,
+            ),
         );
     }
 }
